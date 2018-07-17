@@ -1,0 +1,12 @@
+# Created by .ignore support plugin (hsz.mobi)
+.DS_Store
+.idea
+IoT/__pycache__/
+iot_1/__pycache__/
+iot_1/settings.py
+udp_receive_local.py
+udp_receive_server.py
+nginx.conf
+uwsgi_params
+uwsgi.ini
+venv/
