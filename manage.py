@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 import os
 import sys
-# import socket
+
 
 if __name__ == "__main__":
-    #
-    # serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # serversocket.sendto(b'ep=P1TX4WG9UWPH5CTM&pw=123123', ('115.29.240.46', 6000))
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "iot_1.settings")
     try:
