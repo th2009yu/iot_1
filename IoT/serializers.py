@@ -1,77 +1,77 @@
 from rest_framework import serializers
-from IoT.models import Owner
-from IoT.models import Area
-from IoT.models import RaspberryPi
-from IoT.models import KindOfArduino
-from IoT.models import Arduino
-from IoT.models import Agri
+from django.contrib.auth.models import User
+from IoT.models import *
 
 
-# 用户序列化
-class OwnerSerializer(serializers.ModelSerializer):
+# 用户注册序列化
+class UserRegisterSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Owner
-        fields = ['name']
+        model = User
+        fields = ('id', 'username', 'password')
+
+
+# 用户列表序列化
+class UserSerializer(serializers.ModelSerializer):
+    areas = serializers.PrimaryKeyRelatedField(many=True, queryset=Area.objects.all())
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'areas')
+
+
+# 用户新建序列化
+class UserCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'password')
 
 
 # 大棚（区域）序列化
 class AreaSerializer(serializers.ModelSerializer):
+    owner = serializers.ReadOnlyField(source='owner.username')
+
     class Meta:
         model = Area
-        fields = ['number', 'detail', 'longitude', 'latitude', 'status', 'owner', 'SoilTemp_max',
+        fields = ('number', 'detail', 'longitude', 'latitude', 'status', 'owner', 'SoilTemp_max',
                   'SoilTemp_min', 'SoilHumidity_min', 'LightIntensity_min', 'O2C_min',
-                  'CO2C_min', 'limit']
-
-
-# 树莓派序列化
-class RaspberryPiSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RaspberryPi
-        fields = ['number', 'belongTo']
+                  'CO2C_min', 'limit',)
 
 
 # Arduino类型序列化
 class KindOfArduinoSerializer(serializers.ModelSerializer):
     class Meta:
         model = KindOfArduino
-        fields = ['kind']
+        fields = ('kind',)
 
 
-# Arduino设备序列化
-class ArduinoSerializer(serializers.ModelSerializer):
+# 设备序列化
+class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Arduino
-        fields = ['belongToArea', 'belongToRbp', 'number', 'kind']
+        model = Device
+        fields = ('Area_number', 'Rbp_number', 'Ard_number', 'kind',)
 
 
-# Arduino产生数据的序列化
+# iot数据的序列化
 class AgriSerializer(serializers.ModelSerializer):
     class Meta:
         model = Agri
-        fields = ['belongToArea', 'belongToRbp', 'belongToArd', 'kind', 'soil_Humidity', 'soil_Temp',
+        fields = ['Ard_number', 'soil_Humidity', 'soil_Temp',
                   'soil_Salinity', 'soil_EC', 'air_Humidity', 'air_Temp', 'CO2_Concentration',
                   'light_Intensity', 'soil_PH', 'air_Pressure', 'wind_Speed', 'O2_Concentration',
                   'created']
 
 
-# class FieldSerializer(serializers.ModelSerializer):
+# # 设备（树莓派+Arduino）序列化
+# class ArduinoSerializer(serializers.ModelSerializer):
 #     class Meta:
-#         model = Field
-#         fields = ['number', 'soil_Temperature', 'soil_Humidity', 'soil_Conductivity',
-#                   'soil_Salinity', 'air_Temperature', 'air_Humidity', 'carbonDioxide_Concentration',
-#                   'soil_PH', 'light_Intensity', 'oxygen_Concentration', 'air_Pressure', 'created']
+#         model = Arduino
+#         fields = ('number', 'kind',)
 #
 #
-# class PondSerializer(serializers.ModelSerializer):
+# class RaspberryPiSerializer(serializers.ModelSerializer):
+#     arduinos = ArduinoSerializer(many=True, read_only=True)
+#
 #     class Meta:
-#         model = Pond
-#         fields = ['number', 'liquid_Temperature', 'liquidDissolved_OxygenConcentration', 'liquid_PH',
-#                   'light_Intensity', 'air_Pressure', 'created']
+#         model = RaspberryPi
+#         fields = ('number', 'arduinos',)
 #
-#
-# class ForestSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Forest
-#         fields = ['number', 'soil_Temperature', 'soil_Humidity', 'soil_Conductivity',
-#                   'soil_Salinity', 'air_Temperature', 'air_Humidity', 'carbonDioxide_Concentration',
-#                   'soil_PH', 'light_Intensity', 'wind_Speed', 'air_Pressure', 'created']

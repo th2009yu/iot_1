@@ -1,17 +1,6 @@
 from django.db import models
 
 
-# 拥有者
-class Owner(models.Model):
-    """
-    名字 [主键]
-    """
-    name = models.CharField(max_length=100, primary_key=True)
-
-    def __str__(self):
-        return self.name
-
-
 # 大棚状态
 class Status(models.Model):
     """
@@ -45,7 +34,7 @@ class Area(models.Model):
     longitude = models.CharField(max_length=100)
     latitude = models.CharField(max_length=100)
     status = models.ForeignKey(Status, on_delete=models.CASCADE)
-    owner = models.ForeignKey(Owner, on_delete=models.CASCADE)
+    owner = models.ForeignKey('auth.User', related_name='areas', on_delete=models.CASCADE)
     SoilTemp_max = models.CharField(max_length=100)
     SoilTemp_min = models.CharField(max_length=100)
     SoilHumidity_min = models.CharField(max_length=100)
@@ -53,16 +42,6 @@ class Area(models.Model):
     O2C_min = models.CharField(max_length=100)
     CO2C_min = models.CharField(max_length=100)
     limit = models.IntegerField()
-
-
-# 树莓派
-class RaspberryPi(models.Model):
-    """
-    编号 [主键]
-    所属的大棚（区域）[外键]
-    """
-    number = models.IntegerField(primary_key=True)
-    Area_number = models.ForeignKey(Area, related_name='raspberrypi', on_delete=models.CASCADE)
 
 
 # Arduino类型
@@ -76,19 +55,50 @@ class KindOfArduino(models.Model):
         return self.kind
 
 
-# Arduino
-class Arduino(models.Model):
+# # 树莓派
+# class RaspberryPi(models.Model):
+#     """
+#     编号 [主键]
+#     所属的大棚（区域）[外键]
+#     """
+#     number = models.IntegerField(primary_key=True)
+#     Area_number = models.ForeignKey(Area, related_name='raspberrypis', on_delete=models.CASCADE)
+#
+#     class Meta:
+#         ordering = ('Area_number', 'number',)
+#
+#
+# # Arduino
+# class Arduino(models.Model):
+#     """
+#     所属的树莓派 [外键]
+#     Arduino编号 [主键]
+#     Arduino类型 [外键]
+#     """
+#     Rbp_number = models.ForeignKey(RaspberryPi, related_name='arduinos', on_delete=models.CASCADE)
+#     number = models.IntegerField(primary_key=True)
+#     kind = models.ForeignKey(KindOfArduino, on_delete=models.CASCADE)
+#
+#     class Meta:
+#         ordering = ('Rbp_number', 'number',)
+
+
+# 设备
+class Device(models.Model):
     """
-    所属的树莓派 [外键]
-    Arduino编号 [主键]
-    Arduino类型 [外键]
+    数量级关系：大棚 1：N 树莓派 1：N arduino
+    Rbp_number: 树莓派编号
+    Ard_number: arduino编号
+    kind: arduino类型
+    Area_number: 所属的大棚（区域）
     """
-    Rbp_number = models.ForeignKey(RaspberryPi, related_name='arduino', on_delete=models.CASCADE)
-    number = models.IntegerField(primary_key=True)
-    kind = models.ForeignKey(KindOfArduino, on_delete=models.CASCADE)
+    Rbp_number = models.IntegerField()
+    Ard_number = models.IntegerField(primary_key=True)
+    kind = models.ForeignKey(KindOfArduino, related_name='devices', on_delete=models.CASCADE)
+    Area_number = models.ForeignKey(Area, related_name='devices', on_delete=models.CASCADE)
 
     class Meta:
-        ordering = ('Rbp_number', 'number',)
+        ordering = ('Area_number', 'Rbp_number', 'Ard_number')
 
 
 # iot数据
@@ -109,7 +119,7 @@ class Agri(models.Model):
     氧气浓度 [可选]
     时间
     """
-    Ard_number = models.ForeignKey(Arduino, on_delete=models.CASCADE)
+    Ard_number = models.ForeignKey(Device, related_name='agris', on_delete=models.CASCADE)
     soil_Humidity = models.CharField(max_length=100, blank=True)
     soil_Temp = models.CharField(max_length=100, blank=True)
     soil_Salinity = models.CharField(max_length=100, blank=True)
@@ -125,97 +135,4 @@ class Agri(models.Model):
     created = models.CharField(max_length=100)
 
     class Meta:
-        ordering = ('Ard_number', 'created',)
-
-# 田野
-# class Field(models.Model):
-#     """
-#     编号
-#     土壤温度
-#     土壤湿度
-#     土壤电导率
-#     土壤盐度
-#     空气温度
-#     空气湿度
-#     二氧化碳浓度
-#     土壤ph值
-#     光照强度
-#     氧气浓度
-#     气压
-#     数据产生时间
-#     """
-#     number = models.IntegerField()
-#     soil_Temperature = models.CharField(max_length=100)
-#     soil_Humidity = models.CharField(max_length=100)
-#     soil_Conductivity = models.CharField(max_length=100)
-#     soil_Salinity = models.CharField(max_length=100)
-#     air_Temperature = models.CharField(max_length=100)
-#     air_Humidity = models.CharField(max_length=100)
-#     carbonDioxide_Concentration = models.CharField(max_length=100)
-#     soil_PH = models.CharField(max_length=100)
-#     light_Intensity = models.CharField(max_length=100)
-#     oxygen_Concentration = models.CharField(max_length=100)
-#     air_Pressure = models.CharField(max_length=100)
-#     created = models.CharField(max_length=100)
-#
-#     class Meta:
-#         ordering = ('number', 'created', )
-#
-#
-# # 池塘
-# class Pond(models.Model):
-#     """
-#     编号
-#     液体温度
-#     液体溶解氧浓度
-#     液体ph值
-#     光照强度
-#     气压
-#     数据产生时间
-#     """
-#     number = models.IntegerField()
-#     liquid_Temperature = models.CharField(max_length=100)
-#     liquidDissolved_OxygenConcentration = models.CharField(max_length=100)
-#     liquid_PH = models.CharField(max_length=100)
-#     light_Intensity = models.CharField(max_length=100)
-#     air_Pressure = models.CharField(max_length=100)
-#     created = models.CharField(max_length=100)
-#
-#     class Meta:
-#         ordering = ('number', 'created',)
-#
-#
-# # 山林
-# class Forest(models.Model):
-#     """
-#     编号
-#     土壤温度
-#     土壤湿度
-#     土壤电导率
-#     土壤盐度
-#     空气温度
-#     空气湿度
-#     二氧化碳浓度
-#     土壤ph值
-#     光照强度
-#     风速
-#     气压
-#     **氧气**
-#     数据产生时间
-#     """
-#     number = models.IntegerField()
-#     soil_Temperature = models.CharField(max_length=100)
-#     soil_Humidity = models.CharField(max_length=100)
-#     soil_Conductivity = models.CharField(max_length=100)
-#     soil_Salinity = models.CharField(max_length=100)
-#     air_Temperature = models.CharField(max_length=100)
-#     air_Humidity = models.CharField(max_length=100)
-#     carbonDioxide_Concentration = models.CharField(max_length=100)
-#     soil_PH = models.CharField(max_length=100)
-#     light_Intensity = models.CharField(max_length=100)
-#     wind_Speed = models.CharField(max_length=100)
-#     air_Pressure = models.CharField(max_length=100)
-#     created = models.CharField(max_length=100)
-#
-#     class Meta:
-#         ordering = ('number', 'created',)
+        ordering = ('Ard_number', '-created',)

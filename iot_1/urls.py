@@ -21,3 +21,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('IoT.urls'))
 ]
+
+urlpatterns += [
+    path('api/users/', include('rest_framework.urls', namespace='rest_framework')),
+]

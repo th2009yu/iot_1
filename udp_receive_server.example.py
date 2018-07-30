@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-# 服务器代码
+# 本地开发使用
 
 import socket
 import time
@@ -47,97 +47,45 @@ def recvData(server_socket):
             index = index + 1
             continue
 
-        # arduino编号、arduino类型（1山林，2水下，3田野）、土壤湿度、土壤温度、土壤盐度、
+        # 树莓派编号、arduino编号、arduino类型（1山林，2水下，3田野）、土壤湿度、土壤温度、土壤盐度、
         # 土壤EC值、空气湿度、空气温度、二氧化碳浓度、光照强度、ph值、气压、风速、氧气浓度、时间
-        number = agri_str[0]
-        kind = agri_str[1]
-        # 将收到的字符串类型转换成int类型
-        kind_int = int(kind)
+        Ard_number = agri_str[1]
+        soil_Humidity = agri_str[3]
+        soil_Temp = agri_str[4]
+        soil_Salinity = agri_str[5]
+        soil_EC = agri_str[6]
+        air_Humidity = agri_str[7]
+        air_Temp = agri_str[8]
+        CO2_Concentration = agri_str[9]
+        light_Intensity = agri_str[10]
+        soil_PH = agri_str[11]
+        air_Pressure = agri_str[12]
+        wind_Speed = agri_str[13]
+        O2_Concentration = agri_str[14]
+        created = agri_str[15]
 
-        # 判断arduino的种类，将对应的数据分别存入到对应的数据表中
-
-        # 田野
-        if kind_int == 3:
-            soil_Temperature = agri_str[2]
-            soil_Humidity = agri_str[3]
-            soil_Conductivity = agri_str[5]
-            soil_Salinity = agri_str[4]
-            air_Temperature = agri_str[7]
-            air_Humidity = agri_str[6]
-            carbonDioxide_Concentration = agri_str[8]
-            soil_PH = agri_str[10]
-            light_Intensity = agri_str[9]
-            oxygen_Concentration = agri_str[13]
-            air_Pressure = agri_str[11]
-            created = agri_str[14]
-            # Inserting data into mysql
-            conn = mysql.connector.connect(user='xxx', password='xxx', database='xxx')
-            cursor = conn.cursor()
-            # the type of data needed to insert into mysql must be String，or insert failed.
-            cursor.execute(
-                'insert into IoT_field (number, soil_Temperature, soil_Humidity, soil_Conductivity, soil_Salinity, air_Temperature, air_Humidity, carbonDioxide_Concentration, soil_PH, light_Intensity, oxygen_Concentration, air_Pressure, created) values (%s, %s, %s, %s, %s,%s, %s, %s, %s, %s,%s, %s, %s)',
-                [number, soil_Temperature, soil_Humidity, soil_Conductivity, soil_Salinity, air_Temperature, air_Humidity,
-                 carbonDioxide_Concentration, soil_PH, light_Intensity, oxygen_Concentration, air_Pressure, created])
-            print(cursor.rowcount)
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-        # arduino编号、arduino类型（1山林，2水下，3田野）、土壤湿度、土壤温度、土壤盐度、
-        # 土壤EC值、空气湿度、空气温度、二氧化碳浓度、光照强度、ph值、气压、风速、氧气浓度、时间
-        # 水下
-        if kind_int == 2:
-            liquid_Temperature = agri_str[2]
-            liquidDissolved_OxygenConcentration = agri_str[8]
-            liquid_PH = agri_str[10]
-            light_Intensity = agri_str[9]
-            air_Pressure = agri_str[11]
-            created = agri_str[14]
-            # Inserting data into mysql
-            conn = mysql.connector.connect(user='xxx', password='xxx', database='xxx')
-            cursor = conn.cursor()
-            # the type of data needed to insert into mysql must be String，or insert failed.
-            cursor.execute(
-                'insert into IoT_pond (number, liquid_Temperature, liquidDissolved_OxygenConcentration, liquid_PH, light_Intensity, air_Pressure, created) values (%s, %s, %s, %s, %s, %s, %s)',
-                [number, liquid_Temperature, liquidDissolved_OxygenConcentration, liquid_PH, light_Intensity, air_Pressure,
-                 created])
-            print(cursor.rowcount)
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-        # arduino编号、arduino类型（1山林，2水下，3田野）、土壤湿度、土壤温度、土壤盐度、
-        # 土壤EC值、空气湿度、空气温度、二氧化碳浓度、光照强度、ph值、气压、风速、氧气浓度、时间
-        # 山林
-        if kind_int == 1:
-            soil_Temperature = agri_str[2]
-            soil_Humidity = agri_str[3]
-            soil_Conductivity = agri_str[5]
-            soil_Salinity = agri_str[4]
-            air_Temperature = agri_str[7]
-            air_Humidity = agri_str[6]
-            carbonDioxide_Concentration = agri_str[8]
-            soil_PH = agri_str[10]
-            light_Intensity = agri_str[9]
-            wind_Speed = agri_str[12]
-            air_Pressure = agri_str[11]
-            created = agri_str[14]
-            # Inserting data into mysql
-            conn = mysql.connector.connect(user='xxx', password='xxx', database='xxx')
-            cursor = conn.cursor()
-            # the type of data needed to insert into mysql must be String，or insert failed.
-            cursor.execute(
-                'insert into IoT_forest (number, soil_Temperature, soil_Humidity, soil_Conductivity, soil_Salinity, air_Temperature, air_Humidity, carbonDioxide_Concentration, soil_PH, light_Intensity, wind_Speed, air_Pressure, created) values (%s, %s, %s, %s, %s,%s, %s, %s, %s, %s,%s, %s, %s)',
-                [number, soil_Temperature, soil_Humidity, soil_Conductivity, soil_Salinity, air_Temperature, air_Humidity,
-                 carbonDioxide_Concentration, soil_PH, light_Intensity, wind_Speed, air_Pressure, created])
-            print(cursor.rowcount)
-            conn.commit()
-            cursor.close()
-            conn.close()
+        # Inserting data into mysql
+        conn = mysql.connector.connect(user='root', password='bupt626', database='iot_1')
+        cursor = conn.cursor()
+        # the type of data needed to insert into mysql must be String，or insert failed.
+        query = "insert into " \
+                "IoT_agri(Ard_number_id, soil_Humidity, " \
+                "soil_Temp, soil_Salinity, soil_EC, air_Humidity, air_Temp, " \
+                "CO2_Concentration, light_Intensity, soil_PH, air_Pressure, wind_Speed, " \
+                "O2_Concentration, created) " \
+                "values (%s, %s, %s, %s, %s, %s, " \
+                "%s, %s, %s, %s, %s, %s, %s, %s)"
+        cursor.execute(query, [Ard_number, soil_Humidity, soil_Temp,
+                               soil_Salinity, soil_EC, air_Humidity, air_Temp, CO2_Concentration,
+                               light_Intensity, soil_PH, air_Pressure, wind_Speed, O2_Concentration, created])
+        print(cursor.rowcount)
+        conn.commit()
+        cursor.close()
+        conn.close()
 
 
 serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-serversocket.sendto(b'ep=xxx&pw=xxx', ('115.29.240.46', 6000))
+serversocket.sendto(b'ep=23SSMC3PDDQ7T1N7&pw=845962', ('115.29.240.46', 6000))
 recvThread = threading.Thread(target=recvData, args=(serversocket,))
 recvThread.daemon = True
 recvThread.start()
