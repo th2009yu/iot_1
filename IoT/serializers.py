@@ -1,13 +1,41 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from IoT.models import *
+from rest_framework.validators import UniqueValidator
 
 
 # 用户注册序列化
 class UserRegisterSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(label="用户名", required=True, allow_blank=False,
+                                     validators=[UniqueValidator(queryset=User.objects.all(), message="用户已经存在")])
+
+    password = serializers.CharField(
+        style={'input_type': 'password'}, label="密码", write_only=True,
+    )
+
+    def create(self, validated_data):
+        user = super(UserRegisterSerializer, self).create(validated_data=validated_data)
+        user.set_password(validated_data["password"])
+        user.save()
+        return user
+
     class Meta:
         model = User
-        fields = ('id', 'username', 'password')
+        fields = ('username', 'password')
+
+
+# 用户登录序列化
+class UserLoginSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        style={'input_type': 'password'}, label="密码", write_only=True,
+    )
+
+    id = serializers.CharField(label="编号", read_only=True)
+    is_staff = serializers.CharField(label="是否是管理员", read_only=True)
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'password', 'is_staff')
 
 
 # 用户列表序列化
@@ -46,6 +74,7 @@ class KindOfArduinoSerializer(serializers.ModelSerializer):
 
 # 设备序列化
 class DeviceSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Device
         fields = ('Area_number', 'Rbp_number', 'Ard_number', 'kind',)

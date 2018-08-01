@@ -1,9 +1,5 @@
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_protect
 from rest_framework.views import APIView
 from IoT.permissions import *
-from django.contrib.auth.models import User
-from .models import *
 from .serializers import *
 from rest_framework.response import Response
 from rest_framework import status, generics
@@ -13,6 +9,7 @@ from django.http import Http404
 from django.http import HttpResponse
 import socket
 import time
+from django.contrib.auth import logout
 
 
 # 客户端命令接口
@@ -32,25 +29,44 @@ def order(request):
         return HttpResponse('send failed!')
 
 
-# 用户注册
-class UserRegister(APIView):
+# 用户注册（权限：所有人）
+class UserRegister(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserRegisterSerializer
 
-    @csrf_protect
-    def post(self, request, format=None):
+    permission_classes = (permissions.AllowAny,)
+
+
+# 用户登录（权限：所有人）
+class UserLogin(APIView):
+    queryset = User.objects.all()
+    serializer_class = UserLoginSerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def post (self, request, format=None):
         data = request.data
         username = data.get('username')
-        if User.objects.filter(username__exact=username):
-            return Response("用户名已存在", HTTP_400_BAD_REQUEST)
-        serializer = UserRegisterSerializer(data=data)
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()
-            return Response(serializer.data, status=HTTP_200_OK)
-        return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
+        password = data.get('password')
+        try:
+            user = User.objects.get(username__exact=username)
+        except User.DoesNotExist:
+            return Response('username error', HTTP_400_BAD_REQUEST)
+        if user.check_password(password):
+            serializer = UserLoginSerializer(user)
+            new_data = serializer.data
+            # 记忆已登录用户
+            self.request.session['user_id'] = user.id
+            return Response(new_data, status=HTTP_200_OK)
+        return Response('password error', HTTP_400_BAD_REQUEST)
 
 
-# List all owners
+# 用户登出
+def user_logout(request):
+    logout(request)
+    return HttpResponse('logout success!')
+
+
+# 显示所有用户列表（权限：管理员）
 class UserList(generics.ListAPIView):
     """
     Permissions: Only administrators have permission to read the userlist.
@@ -61,18 +77,18 @@ class UserList(generics.ListAPIView):
     permission_classes = (permissions.IsAdminUser,)
 
 
-# Create a new owner
-class UserCreate(generics.CreateAPIView):
-    """
-    Permissions: Only administrators have permission to create a new owner.
-    """
-    queryset = User.objects.all()
-    serializer_class = UserCreateSerializer
+# # Create a new owner
+# class UserCreate(generics.CreateAPIView):
+#     """
+#     Permissions: Only administrators have permission to create a new owner.
+#     """
+#     queryset = User.objects.all()
+#     serializer_class = UserCreateSerializer
+#
+#     permission_classes = (permissions.IsAdminUser,)
 
-    permission_classes = (permissions.IsAdminUser,)
 
-
-# Retrieve, update or delete a owner instance.
+# 获取、更新或删除某个用户实例（权限：管理员）
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     """
     Permissions: Only administrators have permission to Retrieve, update or delete the user.
@@ -110,7 +126,7 @@ class AreaDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsOwnerOrIsAdminUser,)
 
 
-# 显示某用户的所有大棚（区域）列表（权限：认证的用户）（E.g. /areas_owner/1/    :显示id为1的用户的所有大棚（区域）列表）
+# 显示某用户的所有大棚（区域）列表（权限：认证的用户）（E.g. /arealist/1/    :显示id为1的用户的所有大棚（区域）列表）
 class SpecificAreaList(APIView):
     @staticmethod
     def get_object(pk):
@@ -136,19 +152,31 @@ class KindOfArduinoList(generics.ListCreateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
 
-# 显示所有设备列表/新建一个设备
-class DeviceList(generics.ListCreateAPIView):
+# 显示所有设备列表（权限：管理员）
+class DeviceList(generics.ListAPIView):
     queryset = Device.objects.all()
     serializer_class = DeviceSerializer
 
+    permission_classes = (permissions.IsAdminUser,)
 
-# 获得、更新、删除一个设备实例
+
+# 新建一个设备（权限：认证的用户）
+class DeviceCreate(generics.CreateAPIView):
+    queryset = Device.objects.all()
+    serializer_class = DeviceSerializer
+
+    permission_classes = (permissions.IsAuthenticated,)
+
+
+# 获得、更新、删除一个设备实例（权限：认证的用户）
 class DeviceDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Device.objects.all()
     serializer_class = DeviceSerializer
 
+    permission_classes = (permissions.IsAuthenticated,)
 
-# 显示某大棚下的所有设备列表（E.g. /devicelist/1/    :显示id为1的大棚下的所有设备列表）
+
+# 显示某大棚下的所有设备列表（权限：认证的用户）（E.g. /devicelist/1/    :显示id为1的大棚下的所有设备列表）
 class SpecificDeviceList(APIView):
     @staticmethod
     def get_object(pk):
@@ -162,20 +190,34 @@ class SpecificDeviceList(APIView):
         serializer = DeviceSerializer(Device_list, many=True)
         return Response(serializer.data)
 
+    permission_classes = (permissions.IsAuthenticated,)
 
-# 显示所有iot数据列表/新建一个新iot数据
-class AgriList(generics.ListCreateAPIView):
+
+# 显示所有iot数据列表(权限：管理员)
+class AgriList(generics.CreateAPIView):
     queryset = Agri.objects.all()
     serializer_class = AgriSerializer
 
+    permission_classes = (permissions.IsAdminUser,)
 
-# 获得、更新、删除一个iot数据实例
+
+# 新建一个新iot数据(权限：认证的用户)
+class AgriCreate(generics.CreateAPIView):
+    queryset = Agri.objects.all()
+    serializer_class = AgriSerializer
+
+    permission_classes = (permissions.IsAuthenticated,)
+
+
+# 获得、更新、删除一个iot数据实例（权限：认证的用户）
 class AgriDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Agri.objects.all()
     serializer_class = AgriSerializer
 
+    permission_classes = (permissions.IsAuthenticated,)
 
-# 显示某Arduino产生的所有iot数据列表（E.g. /agrilist/1/    :显示id为1的Arduino下的所有iot数据列表）
+
+# 显示某Arduino产生的所有iot数据列表（权限：认证的用户）（E.g. /agrilist/1/    :显示id为1的Arduino下的所有iot数据列表）
 class SpecificAgriList(APIView):
     @staticmethod
     def get_object(pk):
@@ -189,8 +231,10 @@ class SpecificAgriList(APIView):
         serializer = AgriSerializer(Agri_list, many=True)
         return Response(serializer.data)
 
+    permission_classes = (permissions.IsAuthenticated,)
 
-# 显示某Arduino所产生的最新的n条iot数据列表（E.g. /agrilist/1/1/    :显示id为1的Arduino下的最新的一条iot数据列表）
+
+# 显示某Arduino所产生的最新的n条iot数据列表(权限：认证的用户)(E.g. /agrilist/1/1/:显示id为1的Arduino下的最新的一条iot数据列表）
 class LimitAgriList(APIView):
     @staticmethod
     def get_object(pk, number):
@@ -204,118 +248,4 @@ class LimitAgriList(APIView):
         serializer = AgriSerializer(Agri_list, many=True)
         return Response(serializer.data)
 
-
-# # 显示所有树莓派列表/创建一个新树莓派节点
-# class RaspberryPiList(generics.ListCreateAPIView):
-#     queryset = RaspberryPi.objects.all()
-#     serializer_class = RaspberryPiSerializer
-#
-#
-# # 显示某大棚（区域）内的所有树莓派列表（E.g. /rbplist/1/    :显示编号为1的大棚（区域）内所有的树莓派列表）
-# class SpecificRaspberryPiList(APIView):
-#     @staticmethod
-#     def get_object(number):
-#         try:
-#             return RaspberryPi.objects.filter(belongTo=number)
-#         except RaspberryPi.DoesNotExist:
-#             return Http404
-#
-#     def get(self, request, number, format=None):
-#         RaspberryPi_list = self.get_object(number)
-#         serializer = RaspberryPiSerializer(RaspberryPi_list, many=True)
-#         return Response(serializer.data)
-#
-#
-
-#
-#
-# # 显示所有Arduino列表/创建一个新Arduino设备
-# class ArduinoList(generics.ListCreateAPIView):
-#     queryset = Arduino.objects.values('belongToArea', 'belongToRbp', 'number', 'kind')
-#     serializer_class = ArduinoSerializer
-#
-#
-# # 显示某大棚（区域）下的所有Arduino设备列表
-# # (E.g. /areaofardlist/1/ :显示编号为1的大棚（区域）内所有的Arduino设备）
-# class SpecificAreaArduinoList(APIView):
-#     @staticmethod
-#     def get_object(number_area):
-#         try:
-#             return Arduino.objects.filter(belongToArea=number_area)
-#         except RaspberryPi.DoesNotExist:
-#             return Http404
-#
-#     def get(self, request, number_area, format=None):
-#         Arduino_list = self.get_object(number_area)
-#         serializer = ArduinoSerializer(Arduino_list, many=True)
-#         return Response(serializer.data)
-#
-#
-# # 显示某个树莓派下的所有Arduino设备列表
-# # (E.g. /rbpofardlist/1/ :显示编号为1的树莓派下的所有的Arduino设备）
-# class SpecificRbpArduinoList(APIView):
-#     @staticmethod
-#     def get_object(number_rbp):
-#         try:
-#             return Arduino.objects.filter(belongToRbp=number_rbp)
-#         except Arduino.DoesNotExist:
-#             return Http404
-#
-#     def get(self, request, number_rbp, format=None):
-#         Arduino_list = self.get_object(number_rbp)
-#         serializer = ArduinoSerializer(Arduino_list, many=True)
-#         return Response(serializer.data)
-#
-#
-# # 显示所有iot数据列表/创建一个新的iot数据
-# class AgriList(generics.ListCreateAPIView):
-#     queryset = Agri.objects.all()
-#     serializer_class = AgriSerializer
-#
-#
-# # 显示某大棚（区域）里所有的iot数据列表
-# # (E.g. /areaofagrilist/1/ :显示编号为1的大棚（区域）下所有的iot数据）
-# class SpecificAreaAgriList(APIView):
-#     @staticmethod
-#     def get_object(number_area):
-#         try:
-#             return Agri.objects.filter(belongToArea=number_area)
-#         except Agri.DoesNotExist:
-#             return Http404
-#
-#     def get(self, request, number_area, format=None):
-#         Agri_list = self.get_object(number_area)
-#         serializer = AgriSerializer(Agri_list, many=True)
-#         return Response(serializer.data)
-#
-#
-# # 显示某树莓派下所有的iot数据列表
-# # (E.g. /rbpofagrilist/1/ :显示编号为1的树莓派下所有的iot数据）
-# class SpecificRbpAgriList(APIView):
-#     @staticmethod
-#     def get_object(number_rbp):
-#         try:
-#             return Agri.objects.filter(belongToRbp=number_rbp)
-#         except Agri.DoesNotExist:
-#             return Http404
-#
-#     def get(self, request, number_rbp, format=None):
-#         Agri_list = self.get_object(number_rbp)
-#         serializer = AgriSerializer(Agri_list, many=True)
-#         return Response(serializer.data)
-#
-#
-# # 显示某Arduino下所有的iot数据列表
-# # (E.g. /ardofagrilist/1/ :显示编号为1的Arduino下所有的iot数据）
-# class SpecificArdAgriList(APIView):
-#     @staticmethod
-#     def get_object(number_ard):
-#         try:
-#             return Agri.objects.filter(belongToArd=number_ard)
-#         except Agri.DoesNotExist:
-#             return Http404
-#
-#     def get(self, request, number_ard, format=None):
-#         Agri_list = self.get_object(number_ard)
-#         serializer = AgriSerializer(Agri_list, many=True)
-#         return Response(serializer.data)
+    permission_classes = (permissions.IsAuthenticated,)

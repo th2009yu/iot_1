@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'IoT',                  # APP名称
     'rest_framework',       # Django_rest_framework, RESTful框架
+    # 'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -83,7 +84,7 @@ DATABASES = {
     # }
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'iot_1',
+        'NAME': '',
         'USER': '',
         'PASSWORD': '',
         'HOST': '',
@@ -111,6 +112,11 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# AUTHENTICATION_BACKENDS = (
+#
+# )
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/2.0/topics/i18n/
 
@@ -129,3 +135,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
 STATIC_URL = '/static/'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        # 'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    )
+}

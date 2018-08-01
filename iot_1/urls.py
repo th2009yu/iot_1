@@ -15,13 +15,22 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework.authtoken import views
+from rest_framework_jwt.views import obtain_jwt_token
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('IoT.urls'))
+    path('api/', include('IoT.urls')),
 ]
 
 urlpatterns += [
-    path('api/users/', include('rest_framework.urls', namespace='rest_framework')),
+    # drf自带的用户登录登出
+    # path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+
+    # # drf自带的token认证模式
+    # path('api-token-auth/', views.obtain_auth_token),
+    #
+    # # jwt的认证接口
+    # path('login/', obtain_jwt_token),
 ]
