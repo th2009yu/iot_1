@@ -10,3 +10,4 @@ nginx.conf
 uwsgi_params
 uwsgi.ini
 venv/
+IoT/migrations/__pycache__/
