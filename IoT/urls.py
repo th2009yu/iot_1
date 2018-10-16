@@ -4,55 +4,98 @@ from rest_framework.urlpatterns import format_suffix_patterns
 
 
 urlpatterns = [
-    # 客户端命令接口
+    # 手动控制 (E.g. /order?area_number=1&ard_mac=11111&command=hhh)
     path('order', views.order),
 
+
     # 用户模块#################################
-    # 用户注册（权限：所有人）
+    # 用户注册
     path('register/', views.UserRegister.as_view()),
-    # 用户登录（权限：所有人）
+    # 用户登录
     path('login/', views.UserLogin.as_view()),
     # 用户登出
     path('logout/', views.user_logout),
-    # 显示所有用户列表（权限：管理员）
+    # 显示所有用户列表
     path('users/all/', views.UserList.as_view()),
-    # 获取、更新或删除某个用户实例（权限：管理员）
+    # 获得GET、更新PUT、删除DELETE某个用户实例，(E.g. /users/1/ :获取、更新或删除用户id为1的实例)
     path('users/<int:pk>/', views.UserDetail.as_view()),
 
+
     # 大棚(区域)模块#################################
-    # 显示所有大棚(区域)列表(权限：管理员)
+    # 显示所有大棚(区域)列表
     path('areas/all/', views.AreaList.as_view()),
-    # 创建一个新大棚（区域）（权限：认证的用户）
+    # 创建一个新大棚
     path('areas/new/', views.AreaCreate.as_view()),
-    # 获得、更新、删除一个大棚（区域）实例（权限：管理者或者大棚拥有者）
+    # 获得GET、更新PUT、删除DELETE某个大棚实例，(E.g. /areas/1/ :获取、更新或删除大棚编号为1的实例)
     path('areas/<int:pk>/', views.AreaDetail.as_view()),
-    # 显示某用户的所有大棚（区域）列表（权限：认证的用户）（E.g. /arealist/1/    :显示id为1的用户的所有大棚（区域）列表）
+
+    # 创建一个新大棚（区域）及其设备
+    path('areas-devices/new/', views.AreaDeviceCreate.as_view()),
+    # 获得GET一个大棚（区域）实例及其设备列表 (E.g. /areas-devices-get/1/ :获取大棚编号为1的实例及该大棚下的设备列表)
+    path('areas-devices-get/<int:pk>/', views.AreaDeviceDetailGet.as_view()),
+    # 修改大棚信息以及该大棚下的设备(E.g. /areas-devices-modify/1/ :修改大棚编号为1的实例及该大棚下的设备)
+    path('areas-devices-modify/<int:pk>', views.AreaDeviceDetailModify.as_view()),
+
+    # 显示某用户的所有大棚（区域）列表（E.g. /arealist/1/ :显示id为1的用户的所有大棚（区域）列表）
     path('arealist/<int:pk>/', views.SpecificAreaList.as_view()),
 
-    # 显示所有Arduino类型列表/创建一个新Arduino类型（权限：认证的用户）
-    path('arduino_kinds/', views.KindOfArduinoList.as_view()),
+
+
+    # 显示所有设备类型列表/创建一个新设备类型
+    # path('device_kinds/', views.KindOfArduinoList.as_view()),
+
 
     # 设备模块#################################
-    # 显示所有设备列表（权限：管理员）
+    # 显示所有设备列表
     path('devices/all/', views.DeviceList.as_view()),
-    # 新建一个设备（权限：认证的用户）
+    # 新建一个设备
     path('devices/new/', views.DeviceCreate.as_view()),
-    # 获得、更新、删除一个设备实例（权限：认证的用户）
-    path('devices/<int:pk>/', views.DeviceDetail.as_view()),
-    # 显示某大棚下的所有设备列表（权限：认证的用户）（E.g. /devicelist/1/    :显示id为1的大棚下的所有设备列表）
+    # 获得GET、更新PUT、删除DELETE一个设备实例(E.g. /devices/ardmac111/ :获取、更新或删除Ard_mac地址为ardmac111的实例)
+    path('devices/<str:pk>/', views.DeviceDetail.as_view()),
+    # 显示某大棚下的所有设备列表（E.g. /devicelist/1/    :显示id为1的大棚下的所有设备列表）
     path('devicelist/<int:pk>/', views.SpecificDeviceList.as_view()),
 
+
     # iot数据模块#################################
-    # 显示所有iot数据列表(权限：管理员)
+    # 显示所有iot数据列表
     path('agris/all/', views.AgriList.as_view()),
-    # 新建一个新iot数据(权限：认证的用户)
-    path('agris/new/', views.AgriCreate.as_view()),
-    # 获得、更新、删除一个iot数据实例（权限：认证的用户）
+    # 传感器数据接收(新建iot数据)与阈值返回
+    path('agris/new/', views.AgriCreate),
+    # 获得GET、更新PUT、删除DELETE一个iot数据实例(E.g. /agris/1/    :获取、更新或删除id为1的iot数据）
     path('agris/<int:pk>/', views.AgriDetail.as_view()),
-    # 显示某Arduino产生的所有iot数据列表（权限：认证的用户）（E.g. /agrilist/1/    :显示id为1的Arduino下的所有iot数据列表）
-    path('agrilist/<int:pk>/', views.SpecificAgriList.as_view()),
-    # 显示某Arduino所产生的最新的n条iot数据列表(权限：认证的用户)(E.g. /agrilist/1/1/:显示id为1的Arduino下的最新的一条iot数据列表）
-    path('agrilist/<int:pk>/<int:number>/', views.LimitAgriList.as_view()),
+    # 显示某Arduino产生的所有iot数据列表（E.g. /agrilist/ardmac111/ :显示ard_mac为ardmac111的Arduino下的所有iot数据列表）
+    path('agrilist/<str:pk>/', views.SpecificAgriList.as_view()),
+    # 显示某Arduino所产生的最新的n条iot数据列表(E.g. /agrilist/ardmac111/1/:显示ard_mac为ardmac111的Arduino下的最新的1条iot数据列表）
+    path('agrilist/<str:pk>/<int:number>/', views.LimitAgriList.as_view()),
+    # 显示某大棚下所有iot数据列表（E.g. /agrilist-area/1/ :显示编号为1的大棚下所有iot数据列表）
+    path('agrilist-area/<int:pk>/', views.SpecificAgriListArea.as_view()),
+    # 显示某大棚下所产生的最新的n条iot数据列表(E.g. /agrilist-area/1/1/ :显示大棚编号为1下最新的1条iot数据列表)
+    path('agrilist-area/<int:pk>/<int:number>/', views.LimitAgriListArea.as_view()),
+
+
+    # 报警记录模块################################
+    # 显示所有报警记录列表
+    path('alarms/all/', views.AlarmList.as_view()),
+    # 报警记录接收（新建一个报警记录）
+    path('alarms/new/', views.AlarmCreate),
+    # 获得GET、更新PUT、删除DELETE某个报警记录实例，(E.g. /alarms/1/ :获取、更新或删除报警记录id为1的实例)
+    path('alarms/<int:pk>/', views.AlarmDetail.as_view()),
+    # 显示某大棚下的所有报警记录列表（E.g. /alarmlist/1/    :显示大棚编号为1的大棚下的所有报警记录列表）
+    path('alarmlist/<int:pk>/', views.SpecificAlarmList.as_view()),
+    # 显示某大棚下的所有的最新的n条报警记录列表(E.g. /alarmlist/1/1/:显示大棚编号为1的大棚下的最新的1条报警记录列表）
+    path('alarmlist/<int:pk>/<int:number>/', views.LimitAlarmList.as_view()),
+    # 显示某Arduino下的所有报警记录列表（E.g. /alarmlist-ard/ardmac111/ :显示ard_mac为ardmac111的arduino下的所有报警记录列表）
+    path('alarmlist-ard/<str:pk>/', views.SpecificAlarmListArd.as_view()),
+    # 显示某Arduino下的所有的最新的n条报警记录列表（E.g. /alarmlist-ard/ardmac111/1/ :显示ard_mac为ardmac111的arduino下的最新的1条报警记录列表）
+    path('alarmlist-ard/<str:pk>/<int:number>/', views.LimitAlarmListArd.as_view()),
+
+
+    # 历史数据模块###############################
+    # 查看某用户所有的大棚ID、名称以及各个大棚下Arduino的MAC地址(E.g. areas-devices-list/1/ : 显示用户id为1的用户所拥有的大棚列表及其设备列表)
+    path('areas-devices-list/<int:pk>/', views.AreaDeviceList.as_view()),
+    # 根据设备的MAC地址，显示某个时间段的数据
+    path('history-iot/<str:time>', views.HistoryIoT.as_view()),
+
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

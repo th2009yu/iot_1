@@ -60,16 +60,15 @@ class AreaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Area
-        fields = ('number', 'detail', 'longitude', 'latitude', 'status', 'owner', 'SoilTemp_max',
-                  'SoilTemp_min', 'SoilHumidity_min', 'LightIntensity_min', 'O2C_min',
-                  'CO2C_min', 'limit',)
+        fields = ('number', 'name', 'longitude', 'latitude', 'crops', 'status', 'detail', 'owner',
+                  'temp_max','temp_min', 'temp_shake', 'light_min', 'light_shake',)
 
 
-# Arduino类型序列化
-class KindOfArduinoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = KindOfArduino
-        fields = ('kind',)
+# # Arduino类型序列化
+# class KindOfArduinoSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = KindOfArduino
+#         fields = ('kind',)
 
 
 # 设备序列化
@@ -77,30 +76,28 @@ class DeviceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Device
-        fields = ('Area_number', 'Rbp_number', 'Ard_number', 'kind',)
+        fields = ('Area_number', 'Ard_mac', 'kind', 'x', 'y',)
 
 
 # iot数据的序列化
 class AgriSerializer(serializers.ModelSerializer):
     class Meta:
         model = Agri
-        fields = ['Ard_number', 'soil_Humidity', 'soil_Temp',
+        fields = ['id', 'Rbp_mac', 'Ard_mac', 'kind', 'soil_Humidity', 'soil_Temp',
                   'soil_Salinity', 'soil_EC', 'air_Humidity', 'air_Temp', 'CO2_Concentration',
                   'light_Intensity', 'soil_PH', 'air_Pressure', 'wind_Speed', 'O2_Concentration',
                   'created']
 
 
-# # 设备（树莓派+Arduino）序列化
-# class ArduinoSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Arduino
-#         fields = ('number', 'kind',)
-#
-#
-# class RaspberryPiSerializer(serializers.ModelSerializer):
-#     arduinos = ArduinoSerializer(many=True, read_only=True)
-#
-#     class Meta:
-#         model = RaspberryPi
-#         fields = ('number', 'arduinos',)
-#
+# 报警记录的序列化
+class AlarmSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Alarm
+        fields = ['id', 'Area_number', 'Ard_mac', 'created', 'content']
+
+
+# 设备控制状态的序列化
+class ControlSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Control
+        fields = ['Ard_mac', 'light_control', 'temp_control', 'waterPump_control', 'fan']

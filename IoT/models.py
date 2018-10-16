@@ -1,110 +1,76 @@
 from django.db import models
 
 
-# 大棚状态
-class Status(models.Model):
-    """
-    大棚状态：正常、警告
-    """
-    status = models.CharField(max_length=100, primary_key=True)
-
-    def __str__(self):
-        return self.status
-
-
 # 大棚(区域)
 class Area(models.Model):
     """
     编号 [主键]
-    大棚详细说明 [可选]
+    名称
     经度
     纬度
-    状态 [外键]
+    种植作物
+    状态
+    大棚详细说明 [可选]
     拥有者 [外键]
-    土壤温度上限
-    土壤温度下限
-    土壤湿度下限
-    光照强度下限
-    氧气浓度下限
-    二氧化碳浓度下限
-    连续多少条数据超过阈值开始控制
+    温度上限
+    温度下限
+    温度抖动值
+    光照下限
+    光照抖动值
     """
     number = models.IntegerField(primary_key=True)
-    detail = models.CharField(max_length=1000, blank=True)
+    name = models.CharField(max_length=100)
     longitude = models.CharField(max_length=100)
     latitude = models.CharField(max_length=100)
-    status = models.ForeignKey(Status, on_delete=models.CASCADE)
+    crops = models.CharField(max_length=100)
+    status = models.CharField(max_length=100, default='正常')
+    detail = models.CharField(max_length=1000, blank=True)
     owner = models.ForeignKey('auth.User', related_name='areas', on_delete=models.CASCADE)
-    SoilTemp_max = models.CharField(max_length=100)
-    SoilTemp_min = models.CharField(max_length=100)
-    SoilHumidity_min = models.CharField(max_length=100)
-    LightIntensity_min = models.CharField(max_length=100)
-    O2C_min = models.CharField(max_length=100)
-    CO2C_min = models.CharField(max_length=100)
-    limit = models.IntegerField()
+    temp_max = models.CharField(max_length=100, default='26')
+    temp_min = models.CharField(max_length=100, default='20')
+    temp_shake = models.CharField(max_length=100, default='1')
+    light_min = models.CharField(max_length=100, default='100')
+    light_shake = models.CharField(max_length=100, default='80')
 
 
-# Arduino类型
-class KindOfArduino(models.Model):
-    """
-    类型 [主键]（1.山林 2.水下 3.田野）
-    """
-    kind = models.CharField(max_length=100, primary_key=True)
-
-    def __str__(self):
-        return self.kind
-
-
-# # 树莓派
-# class RaspberryPi(models.Model):
+# # Arduino类型
+# class KindOfArduino(models.Model):
 #     """
-#     编号 [主键]
-#     所属的大棚（区域）[外键]
+#     类型 [主键]（1.山林 2.水下 3.田野）
 #     """
-#     number = models.IntegerField(primary_key=True)
-#     Area_number = models.ForeignKey(Area, related_name='raspberrypis', on_delete=models.CASCADE)
+#     kind = models.CharField(max_length=100, primary_key=True)
 #
-#     class Meta:
-#         ordering = ('Area_number', 'number',)
-#
-#
-# # Arduino
-# class Arduino(models.Model):
-#     """
-#     所属的树莓派 [外键]
-#     Arduino编号 [主键]
-#     Arduino类型 [外键]
-#     """
-#     Rbp_number = models.ForeignKey(RaspberryPi, related_name='arduinos', on_delete=models.CASCADE)
-#     number = models.IntegerField(primary_key=True)
-#     kind = models.ForeignKey(KindOfArduino, on_delete=models.CASCADE)
-#
-#     class Meta:
-#         ordering = ('Rbp_number', 'number',)
+#     def __str__(self):
+#         return self.kind
 
 
 # 设备
 class Device(models.Model):
     """
-    数量级关系：大棚 1：N 树莓派 1：N arduino
-    Rbp_number: 树莓派编号
-    Ard_number: arduino编号
-    kind: arduino类型
+    Arduino的MAC地址[主键]
+    Arduino类型
+    该设备在大棚中的坐标x
+    该设备在大棚中的坐标y
     Area_number: 所属的大棚（区域）
     """
-    Rbp_number = models.IntegerField()
-    Ard_number = models.IntegerField(primary_key=True)
-    kind = models.ForeignKey(KindOfArduino, related_name='devices', on_delete=models.CASCADE)
+    Ard_mac = models.CharField(max_length=100, primary_key=True)
+    kind = models.CharField(max_length=100, default='未知')
+    x = models.CharField(max_length=100)
+    y = models.CharField(max_length=100)
     Area_number = models.ForeignKey(Area, related_name='devices', on_delete=models.CASCADE)
 
     class Meta:
-        ordering = ('Area_number', 'Rbp_number', 'Ard_number')
+        ordering = ('Area_number', 'Ard_mac')
 
 
 # iot数据
 class Agri(models.Model):
     """
-    所属Arduino编号 [外键]
+    树莓派MAC地址
+    该条数据所属Arduino的MAC地址 [外键]
+    树莓派IP地址
+    该数据所属大棚编号
+    数据所属设备类型
     土壤湿度 [可选]
     土壤湿度 [可选]
     土壤盐度 [可选]
@@ -119,7 +85,11 @@ class Agri(models.Model):
     氧气浓度 [可选]
     时间
     """
-    Ard_number = models.ForeignKey(Device, related_name='agris', on_delete=models.CASCADE)
+    Rbp_mac = models.CharField(max_length=100)
+    Ard_mac = models.ForeignKey(Device, related_name='agris', on_delete=models.CASCADE)
+    Rbp_ip = models.CharField(max_length=100)
+    Area_number = models.IntegerField()
+    kind = models.CharField(max_length=100)
     soil_Humidity = models.CharField(max_length=100, blank=True)
     soil_Temp = models.CharField(max_length=100, blank=True)
     soil_Salinity = models.CharField(max_length=100, blank=True)
@@ -135,4 +105,36 @@ class Agri(models.Model):
     created = models.CharField(max_length=100)
 
     class Meta:
-        ordering = ('Ard_number', '-created',)
+        ordering = ('Ard_mac', '-created',)
+
+
+# 报警记录
+class Alarm(models.Model):
+    """
+    大棚编号
+    树莓派的MAC地址
+    Arduino的MAC地址
+    产生时间
+    报警内容
+    """
+    Area_number = models.IntegerField()
+    Rbp_mac = models.CharField(max_length=100)
+    Ard_mac = models.CharField(max_length=100, unique=True)
+    created = models.CharField(max_length=100)
+    content = models.CharField(max_length=100)
+
+
+# 设备的控制状态
+class Control(models.Model):
+    """
+    Arduino的MAC地址
+    灯: (0:关, 1:开)
+    温控: (0:关, 1:降, 2:升)
+    水泵: (0:关, 1:开)
+    风扇: (0:关, 1:开)
+    """
+    Ard_mac = models.CharField(max_length=100, unique=True)
+    light_control = models.IntegerField()
+    temp_control = models.IntegerField()
+    waterPump_control = models.IntegerField()
+    fan_control = models.IntegerField()
