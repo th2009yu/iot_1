@@ -102,7 +102,7 @@ class Agri(models.Model):
     air_Pressure = models.CharField(max_length=100, blank=True)
     wind_Speed = models.CharField(max_length=100, blank=True)
     O2_Concentration = models.CharField(max_length=100, blank=True)
-    created = models.CharField(max_length=100)
+    created = models.BigIntegerField()
 
     class Meta:
         ordering = ('Ard_mac', '-created',)
@@ -132,9 +132,11 @@ class Control(models.Model):
     温控: (0:关, 1:降, 2:升)
     水泵: (0:关, 1:开)
     风扇: (0:关, 1:开)
+    时间
     """
     Ard_mac = models.CharField(max_length=100, unique=True)
     light_control = models.IntegerField()
     temp_control = models.IntegerField()
     waterPump_control = models.IntegerField()
     fan_control = models.IntegerField()
+    created = models.BigIntegerField()
