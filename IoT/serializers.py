@@ -100,4 +100,4 @@ class AlarmSerializer(serializers.ModelSerializer):
 class ControlSerializer(serializers.ModelSerializer):
     class Meta:
         model = Control
-        fields = ['Ard_mac', 'light_control', 'temp_control', 'waterPump_control', 'fan']
+        fields = ['Ard_mac', 'light_control', 'temp_control', 'waterPump_control', 'fan', 'created']
