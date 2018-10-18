@@ -108,7 +108,6 @@ class UserList(generics.ListAPIView):
     # permission_classes = (permissions.IsAdminUser,)
 
 
-
 # 获取、更新或删除某个用户实例（权限：管理员）
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -152,19 +151,65 @@ class AreaDetail(APIView):
         serializer = AreaSerializer(area)
         return Response(serializer.data)
 
-    # 修改某个大棚实例
+    # 修改某个大棚实例，并将修改后的阈值信息发送给树莓派
     def put(self, request, pk, format=None):
         area = self.get_object(pk)
         serializer = AreaSerializer(area, data=request.data)
         if serializer.is_valid():
             serializer.save()
+
+            # Server在【Device】中查找该大棚下所有的设备的MAC地址
+            device_mac_list = Device.objects.values_list("Ard_mac").filter(Area_number=pk)
+
+            # 如果该大棚下有设备存在的话:
+            if device_mac_list.exists():
+                # 取出修改完后的阈值信息
+                temp_max = Area.objects.values("temp_max").filter(number=pk).first()['temp_max']
+                temp_min = Area.objects.values("temp_min").filter(number=pk).first()['temp_min']
+                temp_shake = Area.objects.values("temp_shake").filter(number=pk).first()['temp_shake']
+                light_min = Area.objects.values("light_min").filter(number=pk).first()['light_min']
+                light_shake = Area.objects.values("light_shake").filter(number=pk).first()['light_shake']
+                threshold = {
+                    'temp_max': temp_max,
+                    'temp_min': temp_min,
+                    'temp_shake': temp_shake,
+                    'light_min': light_min,
+                    'light_shake': light_shake
+                }
+                json_threshold = json.dumps(threshold, ensure_ascii=False)
+
+                for device_mac in device_mac_list:
+                    # 获得设备的MAC地址
+                    Ard_mac = device_mac[0]
+                    # 根据该设备的MAC地址，在【数据】中查找这些节点的最新对应的树莓派IP
+                    Rbp_ip = Agri.objects.values_list("Rbp_ip").filter(Ard_mac=Ard_mac).first()[0]
+                    # 将阈值信息通过UDP发送给树莓派
+                    serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    serversocket.sendto(json_threshold.encode('utf-8'), (Rbp_ip, 7777))
+
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    # 删除某个大棚实例
     def delete(self, request, pk, format=None):
         area = self.get_object(pk)
         area.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# 显示某用户的所有大棚（区域）列表（权限：认证的用户）（E.g. /arealist/1/    :显示id为1的用户的所有大棚（区域）列表）
+class SpecificAreaList(APIView):
+    @staticmethod
+    def get_object(pk):
+        try:
+            return Area.objects.filter(owner=pk)
+        except Area.DoesNotExist:
+            return Http404
+
+    def get(self, request, pk, format=None):
+        Area_list = self.get_object(pk)
+        serializer = AreaSerializer(Area_list, many=True)
+        return Response(serializer.data)
 
 
 # 创建一个新大棚（区域）及其设备
@@ -237,7 +282,6 @@ class AreaDeviceDetailGet(APIView):
         # 在【Device】中查找该大棚下所有的节点
         device_list = Device.objects.values_list("x", "y", "Ard_mac").filter(Area_number=pk)
         for device in device_list:
-
             x = float(device[0])
             y = float(device[1])
             mac = device[2]
@@ -283,9 +327,9 @@ class AreaDeviceDetailModify(APIView):
 
         # 在【Area】中修改编号为number的大棚数据
         Area.objects.filter(number=number).update(name=name, longitude=longitude, latitude=latitude,
-                                               crops=crops,status=status, detail=detail, owner=owner,
-                                               temp_max=temp_max, temp_min=temp_min, temp_shake=temp_shake,
-                                               light_min=light_min, light_shake=light_shake)
+                                                  crops=crops, status=status, detail=detail, owner=owner,
+                                                  temp_max=temp_max, temp_min=temp_min, temp_shake=temp_shake,
+                                                  light_min=light_min, light_shake=light_shake)
 
         # 在【Device】中删除编号为number的大棚下的所有节点
         Device.objects.filter(Area_number=number).delete()
@@ -304,20 +348,126 @@ class AreaDeviceDetailModify(APIView):
         return HttpResponse('Success!')
 
 
-# 显示某用户的所有大棚（区域）列表（权限：认证的用户）（E.g. /arealist/1/    :显示id为1的用户的所有大棚（区域）列表）
-class SpecificAreaList(APIView):
-    @staticmethod
-    def get_object(pk):
+# 获取某大棚详情信息：其中包括大棚信息、及其设备信息、以及每个设备的最新的一条传感器数据、设备控制的数据、报警记录数据（pk指代大棚编号）
+class AreaDeviceDetailShow(APIView):
+    # 获取大棚实例函数
+    def get_object_area(self, pk):
         try:
-            return Area.objects.filter(owner=pk)
+            return Area.objects.get(number=pk)
         except Area.DoesNotExist:
-            return Http404
+            raise Http404
 
     def get(self, request, pk, format=None):
-        Area_list = self.get_object(pk)
-        serializer = AreaSerializer(Area_list, many=True)
-        return Response(serializer.data)
+        area = self.get_object_area(pk)
+        name = area.name
+        plant = area.crops
+        longitude = float(area.longitude)
+        latitude = float(area.latitude)
+        distribution = []
 
+        # 在【Device】中查找该大棚下所有的节点
+        device_list = Device.objects.values_list("x", "y", "Ard_mac").filter(Area_number=pk)
+        for device in device_list:
+            x = float(device[0])
+            y = float(device[1])
+            # 取出设备的MAC地址
+            mac = device[2]
+
+            # 根据取出的设备MAC地址，在【Agri】中查找该设备下最新的一条传感器数据
+            sensor_tuple = Agri.objects.values_list("soil_Humidity", "soil_Temp", "soil_Salinity",
+                                                    "soil_EC", "air_Humidity","air_Temp",
+                                                    "CO2_Concentration", "light_Intensity", "soil_PH",
+                                                    "air_Pressure", "wind_Speed",
+                                                    "O2_Concentration").filter(Ard_mac=mac).first()
+            # 判断记录是否存在
+            if sensor_tuple:
+                soil_Humidity = sensor_tuple[0]
+                soil_Temp = sensor_tuple[1]
+                soil_Salinity = sensor_tuple[2]
+                soil_EC = sensor_tuple[3]
+                air_Humidity = sensor_tuple[4]
+                air_Temp = sensor_tuple[5]
+                CO2_Concentration = sensor_tuple[6]
+                light_Intensity = sensor_tuple[7]
+                soil_PH = sensor_tuple[8]
+                air_Pressure = sensor_tuple[9]
+                wind_Speed = sensor_tuple[10]
+                O2_Concentration = sensor_tuple[11]
+            else:
+                soil_Humidity = '暂未有数据'
+                soil_Temp = '暂未有数据'
+                soil_Salinity = '暂未有数据'
+                soil_EC = '暂未有数据'
+                air_Humidity = '暂未有数据'
+                air_Temp = '暂未有数据'
+                CO2_Concentration = '暂未有数据'
+                light_Intensity = '暂未有数据'
+                soil_PH = '暂未有数据'
+                air_Pressure = '暂未有数据'
+                wind_Speed = '暂未有数据'
+                O2_Concentration = '暂未有数据'
+
+            # 根据取出的设备MAC地址，在【Control】中查找该设备下最新的一条设备控制数据
+            control_tuple = Control.objects.values_list("light_control", "temp_control", "waterPump_control",
+                                                        "fan_control").filter(Ard_mac=mac).order_by("-created").first()
+
+            # 判断记录是否存在
+            if control_tuple:
+                light_control = control_tuple[0]
+                temp_control = control_tuple[1],
+                waterPump_control = control_tuple[2],
+                fan_control = control_tuple[3],
+            else:
+                # 约定-999代表暂未有数据
+                light_control = -999
+                temp_control = -999
+                waterPump_control = -999
+                fan_control = -999
+
+            # 根据取出的设备MAC地址，在【Alarm】中查找该设备下最新的一条报警记录数据
+            alarm_tuple = Alarm.objects.values_list("content").filter(Ard_mac=mac).order_by("-created").first()
+
+            # 判断记录是否存在
+            if alarm_tuple:
+                content = alarm_tuple[0]
+            else:
+                content = '暂未有数据'
+
+            # 将每个设备所取得的数据以list形式都存在distribution中
+            device_data = {
+                'x': x,
+                'y': y,
+                'mac': mac,
+                'soil_Humidity': soil_Humidity,
+                'soil_Temp': soil_Temp,
+                'soil_Salinity': soil_Salinity,
+                'soil_EC': soil_EC,
+                'air_Humidity': air_Humidity,
+                'air_Temp': air_Temp,
+                'CO2_Concentration': CO2_Concentration,
+                'light_Intensity': light_Intensity,
+                'soil_PH': soil_PH,
+                'air_Pressure': air_Pressure,
+                'wind_Speed': wind_Speed,
+                'O2_Concentration': O2_Concentration,
+                'light_control': light_control,
+                'temp_control': temp_control,
+                'waterPump_control': waterPump_control,
+                'fan_control': fan_control,
+                'content': content
+            }
+            distribution.append(device_data)
+
+        response = {
+            'number': pk,
+            'name': name,
+            'plant': plant,
+            'longitude': longitude,
+            'latitude': latitude,
+            'distribution': distribution
+        }
+        response_json = json.dumps(response, ensure_ascii=False)
+        return HttpResponse(response_json)
 
 
 # # 显示所有Arduino类型列表/创建一个新Arduino类型（权限：认证的用户）
@@ -377,11 +527,11 @@ class AgriList(generics.ListAPIView):
     # permission_classes = (permissions.IsAdminUser,)
 
 
-# 传感器数据接收(新建iot数据)与阈值返回
+# 传感器数据与控制设备开关数据的接收与阈值返回
 def AgriCreate(request):
     """
-    1. 每次接收来自树莓派的数据时，将数据以及树莓派的IP存储到【数据】中
-    2. 在【Device】中查找该Arduino_MAC对应的大棚编号
+    1. 每次接收来自树莓派的数据时，将传感器数据以及树莓派的IP存储到【数据】中，将设备的控制开关数据存储到【Control】中
+    2. 在【Device】中查找传过来的数据中Arduino_MAC对应的大棚编号
     3. 根据大棚编号在【Area】中找到该大棚的所有阈值信息
     4. 将阈值信息通过UDP发送给树莓派
     """
@@ -409,6 +559,10 @@ def AgriCreate(request):
             wind_Speed = req['wind_Speed']
             O2_Concentration = req['O2_Concentration']
             created = req['created']
+            light_control = req['light_control']
+            temp_control = req['temp_control']
+            waterPump_control = req['waterPump_control']
+            fan_control = req['fan_control']
 
             # 在【Device】中查找该Arduino_MAC对应的大棚编号
             Area_number = Device.objects.values("Area_number").filter(Ard_mac=Ard_mac).first()['Area_number']
@@ -421,6 +575,10 @@ def AgriCreate(request):
                                 air_Temp=air_Temp,CO2_Concentration=CO2_Concentration,
                                 light_Intensity=light_Intensity,soil_PH=soil_PH, air_Pressure=air_Pressure,
                                 wind_Speed=wind_Speed,O2_Concentration=O2_Concentration, created=created)
+
+            # 每次接收来自树莓派的数据时，将数据中有关设备的控制开关的部分存储到【Control】中
+            Control.objects.create(Ard_mac=Ard_mac, light_control=light_control, temp_control=temp_control,
+                                   waterPump_control=waterPump_control, fan_control=fan_control, created=created)
 
             # 根据大棚编号在【Area】中找到该大棚的所有阈值信息
             temp_max = Area.objects.values("temp_max").filter(number=Area_number).first()['temp_max']
@@ -442,7 +600,7 @@ def AgriCreate(request):
             serversocket.sendto(json_threshold.encode('utf-8'), (Rbp_ip, 7777))
 
         except Exception:
-            info = 'Send failed!'
+            info = 'Iot and Control data send failed!'
 
         return HttpResponse(info)
     else:
@@ -543,7 +701,7 @@ def AlarmCreate(request):
         # request.body.decode()的结果是一个json字符串，调用json.loads()转为Python字典，然后获取对应值
         req = json.loads(request.body.decode())
         try:
-            info = 'Send successfully!'
+            info = 'Alarm send successfully!'
             Rbp_mac = req['Rbp_mac']
             Ard_mac = req['Ard_mac']
             created = req['created']
@@ -554,9 +712,8 @@ def AlarmCreate(request):
 
             # 将 [大棚编号、树莓派_mac、Arduino_mac、产生时间、内容] 存储进【Alarm】
             Alarm.objects.create(Area_number=Area_number, Rbp_mac=Rbp_mac, Ard_mac=Ard_mac, created=created, content=content)
-
         except Exception:
-            info = 'Send failed!'
+            info = 'Alarm send failed!'
         serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         serversocket.sendto(info.encode('utf-8'), (Rbp_ip, 7777))
         return HttpResponse(info)
@@ -635,7 +792,7 @@ class LimitAlarmListArd(APIView):
 
 # 查看某用户所有的大棚ID、名称以及各个大棚下Arduino的MAC地址(E.g. areas-devices-list/1/ : 显示用户id为1的用户所拥有的大棚列表及其设备列表)
 class AreaDeviceList(APIView):
-    def get (self, request, pk, format=None):
+    def get(self, request, pk, format=None):
         data = []
         # 在【Area】获取该用户下的所有大棚的编号及名称列表
         area_list = Area.objects.values_list("number", "name").filter(owner=pk)
@@ -664,6 +821,18 @@ class AreaDeviceList(APIView):
         return HttpResponse(data_json)
 
 
-# 根据设备的MAC地址，显示某个时间段的数据
+# 根据设备的MAC地址，获取某天的数据,pk为Arduino的MAC地址，timestamp为当天的时间戳
 class HistoryIoT(APIView):
-    pass
+    @staticmethod
+    def get_object(pk, timestamp):
+        try:
+            start = timestamp
+            end = timestamp + 86216
+            return Agri.objects.filter(Ard_mac=pk).filter(created__range=(start, end))
+        except Agri.DoesNotExist:
+            return Http404
+
+    def get(self, request, pk, timestamp, format=None):
+        Agri_list = self.get_object(pk, timestamp)
+        serializer = AgriSerializer(Agri_list, many=True)
+        return Response(serializer.data)
