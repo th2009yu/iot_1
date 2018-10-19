@@ -141,7 +141,7 @@ class AreaDetail(APIView):
 
     def get_object(self, pk):
         try:
-            return Area.objects.filter(number=pk)
+            return Area.objects.get(number=pk)
         except Area.DoesNotExist:
             return Http404
 
@@ -414,9 +414,9 @@ class AreaDeviceDetailShow(APIView):
             # 判断记录是否存在
             if control_tuple:
                 light_control = control_tuple[0]
-                temp_control = control_tuple[1],
-                waterPump_control = control_tuple[2],
-                fan_control = control_tuple[3],
+                temp_control = control_tuple[1]
+                waterPump_control = control_tuple[2]
+                fan_control = control_tuple[3]
             else:
                 # 约定-999代表暂未有数据
                 light_control = -999
@@ -466,6 +466,7 @@ class AreaDeviceDetailShow(APIView):
             'latitude': latitude,
             'distribution': distribution
         }
+
         response_json = json.dumps(response, ensure_ascii=False)
         return HttpResponse(response_json)
 
