@@ -605,8 +605,8 @@ def AgriCreate(request):
         return HttpResponse(info)
     else:
         info = 'Request error!'
-        serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        serversocket.sendto(info.encode('utf-8'), (Rbp_ip, 7777))
+        # serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # serversocket.sendto(info.encode('utf-8'), (Rbp_ip, 7777))
         return HttpResponse(info)
 
 
@@ -714,13 +714,13 @@ def AlarmCreate(request):
             Alarm.objects.create(Area_number=Area_number, Rbp_mac=Rbp_mac, Ard_mac=Ard_mac, created=created, content=content)
         except Exception:
             info = 'Alarm send failed!'
-        serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        serversocket.sendto(info.encode('utf-8'), (Rbp_ip, 7777))
+        # serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # serversocket.sendto(info.encode('utf-8'), (Rbp_ip, 7777))
         return HttpResponse(info)
     else:
         info = 'Request error!'
-        serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        serversocket.sendto(info.encode('utf-8'), (Rbp_ip, 7777))
+        # serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # serversocket.sendto(info.encode('utf-8'), (Rbp_ip, 7777))
         return HttpResponse(info)
 
 
