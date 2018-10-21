@@ -10,5 +10,5 @@ nginx.conf
 uwsgi_params
 uwsgi.ini
 venv/
-IoT/migrations/__pycache__/
+IoT/migrations/
 数据格式
