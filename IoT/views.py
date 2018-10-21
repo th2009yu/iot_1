@@ -167,12 +167,16 @@ class AreaDetail(APIView):
                 temp_max = Area.objects.values("temp_max").filter(number=pk).first()['temp_max']
                 temp_min = Area.objects.values("temp_min").filter(number=pk).first()['temp_min']
                 temp_shake = Area.objects.values("temp_shake").filter(number=pk).first()['temp_shake']
+                humidity_min = Area.objects.values("humidity_min").filter(number=pk).first()['humidity_min']
+                humidity_shake = Area.objects.values("humidity_shake").filter(number=pk).first()['humidity_shake']
                 light_min = Area.objects.values("light_min").filter(number=pk).first()['light_min']
                 light_shake = Area.objects.values("light_shake").filter(number=pk).first()['light_shake']
                 threshold = {
                     'temp_max': temp_max,
                     'temp_min': temp_min,
                     'temp_shake': temp_shake,
+                    'humidity_min': humidity_min,
+                    'humidity_shake': humidity_shake,
                     'light_min': light_min,
                     'light_shake': light_shake
                 }
@@ -237,14 +241,16 @@ class AreaDeviceCreate(APIView):
         temp_max = req.get('temp_max', '26')
         temp_min = req.get('temp_min', '20')
         temp_shake = req.get('temp_shake', '1')
+        humidity_min = req.get('humidity_min', '0')
+        humidity_shake = req.get('humidity_shake', '1')
         light_min = req.get('light_min', '100')
         light_shake = req.get('light_shake', '80')
 
         # 将数据存储进【Area】
         Area.objects.create(number=number, name=name, longitude=longitude, latitude=latitude, crops=crops,
                             status=status, detail=detail, owner=owner,
-                            temp_max=temp_max, temp_min=temp_min, temp_shake=temp_shake,
-                            light_min=light_min, light_shake=light_shake)
+                            temp_max=temp_max, temp_min=temp_min, temp_shake=temp_shake, humidity_min=humidity_min,
+                            humidity_shake=humidity_shake, light_min=light_min, light_shake=light_shake)
 
         # 新建该大棚所属设备
         distribution = req['distribution']
@@ -322,6 +328,8 @@ class AreaDeviceDetailModify(APIView):
         temp_max = req.get('temp_max', '26')
         temp_min = req.get('temp_min', '20')
         temp_shake = req.get('temp_shake', '1')
+        humidity_min = req.get('humidity_min', '0')
+        humidity_shake = req.get('humidity_shake', '1')
         light_min = req.get('light_min', '100')
         light_shake = req.get('light_shake', '80')
 
@@ -329,6 +337,7 @@ class AreaDeviceDetailModify(APIView):
         Area.objects.filter(number=number).update(name=name, longitude=longitude, latitude=latitude,
                                                   crops=crops, status=status, detail=detail, owner=owner,
                                                   temp_max=temp_max, temp_min=temp_min, temp_shake=temp_shake,
+                                                  humidity_min=humidity_min, humidity_shake=humidity_shake,
                                                   light_min=light_min, light_shake=light_shake)
 
         # 在【Device】中删除编号为number的大棚下的所有节点
@@ -585,12 +594,16 @@ def AgriCreate(request):
             temp_max = Area.objects.values("temp_max").filter(number=Area_number).first()['temp_max']
             temp_min = Area.objects.values("temp_min").filter(number=Area_number).first()['temp_min']
             temp_shake = Area.objects.values("temp_shake").filter(number=Area_number).first()['temp_shake']
+            humidity_min = Area.objects.values("humidity_min").filter(number=Area_number).first()['humidity_min']
+            humidity_shake = Area.objects.values("humidity_shake").filter(number=Area_number).first()['humidity_shake']
             light_min = Area.objects.values("light_min").filter(number=Area_number).first()['light_min']
             light_shake = Area.objects.values("light_shake").filter(number=Area_number).first()['light_shake']
             threshold = {
                 'temp_max': temp_max,
                 'temp_min': temp_min,
                 'temp_shake': temp_shake,
+                'humidity_min': humidity_min,
+                'humidity_shake': humidity_shake,
                 'light_min': light_min,
                 'light_shake': light_shake
             }
@@ -785,7 +798,7 @@ class LimitAlarmListArd(APIView):
         except Alarm.DoesNotExist:
             return Http404
 
-    def get (self, request, pk, number, format=None):
+    def get(self, request, pk, number, format=None):
         Alarm_list = self.get_object(pk, number)
         serializer = AlarmSerializer(Alarm_list, many=True)
         return Response(serializer.data)

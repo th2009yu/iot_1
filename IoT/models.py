@@ -15,6 +15,8 @@ class Area(models.Model):
     温度上限
     温度下限
     温度抖动值
+    湿度下限
+    湿度抖动值
     光照下限
     光照抖动值
     """
@@ -29,6 +31,8 @@ class Area(models.Model):
     temp_max = models.CharField(max_length=100, default='26')
     temp_min = models.CharField(max_length=100, default='20')
     temp_shake = models.CharField(max_length=100, default='1')
+    humidity_min = models.CharField(max_length=100, default='0')
+    humidity_shake = models.CharField(max_length=100, default='1')
     light_min = models.CharField(max_length=100, default='100')
     light_shake = models.CharField(max_length=100, default='80')
 
@@ -116,6 +120,7 @@ class Alarm(models.Model):
     Arduino的MAC地址
     产生时间
     报警内容
+    修改时间
     """
     Area_number = models.IntegerField()
     Rbp_mac = models.CharField(max_length=100)
@@ -140,3 +145,13 @@ class Control(models.Model):
     waterPump_control = models.IntegerField()
     fan_control = models.IntegerField()
     created = models.BigIntegerField()
+
+
+# 新闻
+class News(models.Model):
+    """
+    新闻题目
+    新闻内容
+    """
+    title = models.CharField(max_length=200)
+    news_content = models.TextField()
