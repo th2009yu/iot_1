@@ -10,5 +10,5 @@ nginx.conf
 uwsgi_params
 uwsgi.ini
 venv/
-IoT/migrations/
+IoT/migrations/0001_initial.py
 数据格式
