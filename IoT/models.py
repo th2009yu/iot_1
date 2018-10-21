@@ -37,17 +37,6 @@ class Area(models.Model):
     light_shake = models.CharField(max_length=100, default='80')
 
 
-# # Arduino类型
-# class KindOfArduino(models.Model):
-#     """
-#     类型 [主键]（1.山林 2.水下 3.田野）
-#     """
-#     kind = models.CharField(max_length=100, primary_key=True)
-#
-#     def __str__(self):
-#         return self.kind
-
-
 # 设备
 class Device(models.Model):
     """
