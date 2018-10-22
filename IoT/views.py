@@ -854,9 +854,10 @@ class LimitAlarmListArd(APIView):
 
 # 显示某用户下所有的报警记录,其中包括大棚名称+Ard_MAC+报警内容+报警记录产生时间以及结束时间(其中pk代表用户id)
 class SpecificAlarmListUser(APIView):
-    def get(self, request, pk, format=None):
+    def get(self, request, format=None):
         # 获得该用户下的大棚列表
-        owner = User.objects.get(id=pk)
+        user_id = request.session['user_id']
+        owner = User.objects.get(id=user_id)
         areas_list = Area.objects.filter(owner=owner)
         data = []
         for area in areas_list:

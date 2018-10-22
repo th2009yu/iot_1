@@ -87,8 +87,8 @@ urlpatterns = [
     path('alarmlist-ard/<str:pk>/', views.SpecificAlarmListArd.as_view()),
     # 显示某Arduino下的所有的最新的n条报警记录列表（E.g. /alarmlist-ard/ardmac111/1/ :显示ard_mac为ardmac111的arduino下的最新的1条报警记录列表）
     path('alarmlist-ard/<str:pk>/<int:number>/', views.LimitAlarmListArd.as_view()),
-    # 显示某用户下所有的报警记录,其中包括大棚名称+Ard_MAC+报警内容+报警记录产生时间以及结束时间(其中pk代表用户id)
-    path('alarmlist-user/<int:pk>/', views.SpecificAlarmListUser.as_view()),
+    # 显示当前用户下所有的报警记录,其中包括大棚名称+Ard_MAC+报警内容+报警记录产生时间以及结束时间
+    path('alarmlist-user/', views.SpecificAlarmListUser.as_view()),
 
 
     # 历史数据模块###############################

@@ -61,7 +61,8 @@ class AreaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Area
         fields = ('number', 'name', 'longitude', 'latitude', 'crops', 'status', 'detail', 'owner',
-                  'temp_max','temp_min', 'temp_shake', 'light_min', 'light_shake',)
+                  'temp_max','temp_min', 'temp_shake', 'humidity_min', 'humidity_shake',
+                  'light_min', 'light_shake',)
 
 
 # # Arduino类型序列化
