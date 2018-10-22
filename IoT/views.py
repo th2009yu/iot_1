@@ -608,10 +608,10 @@ def AgriCreate(request):
             device1 = Device.objects.get(Ard_mac=Ard_mac)
             Agri.objects.create(Rbp_mac=Rbp_mac, Ard_mac=device1, Rbp_ip=Rbp_ip, Area_number=Area_number,
                                 kind=kind,soil_Humidity=soil_Humidity, soil_Temp=soil_Temp,
-                                soil_Salinity=soil_Salinity,soil_EC=soil_EC, air_Humidity=air_Humidity,
-                                air_Temp=air_Temp,CO2_Concentration=CO2_Concentration,
-                                light_Intensity=light_Intensity,soil_PH=soil_PH, air_Pressure=air_Pressure,
-                                wind_Speed=wind_Speed,O2_Concentration=O2_Concentration, created=created)
+                                soil_Salinity=soil_Salinity, soil_EC=soil_EC, air_Humidity=air_Humidity,
+                                air_Temp=air_Temp, CO2_Concentration=CO2_Concentration,
+                                light_Intensity=light_Intensity, soil_PH=soil_PH, air_Pressure=air_Pressure,
+                                wind_Speed=wind_Speed, O2_Concentration=O2_Concentration, created=created)
 
             # 每次接收来自树莓派的数据时，将数据中有关设备的控制开关的部分存储到【Control】中
             Control.objects.create(Ard_mac=Ard_mac, light_control=light_control, temp_control=temp_control,
