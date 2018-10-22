@@ -108,7 +108,7 @@ class Alarm(models.Model):
     树莓派的MAC地址
     Arduino的MAC地址
     产生时间
-    报警内容
+    报警内容（当值为空时，代表此时正常暂无报警）
     结束时间（当值为-999时，代表该条记录还未结束）
     """
     Area_number = models.IntegerField()

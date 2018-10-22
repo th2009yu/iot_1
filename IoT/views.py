@@ -493,18 +493,18 @@ class AreaDeviceAlarmCount(APIView):
         # 根据获取的大棚列表，得到arduino数量和报警记录数量
         for area in areas_list:
             devices_count += Device.objects.filter(Area_number=area.number).count()
-            alarms_count += Alarm.objects.filter(Area_number=area.number).count()
+            content_blank_count = Alarm.objects.filter(Area_number=area.number, content='').count()
+            alarms_total = Alarm.objects.filter(Area_number=area.number).count()
+            alarms_count = alarms_total - content_blank_count
 
         data = {
-            'areas_count' : areas_count,
+            'areas_count': areas_count,
             'devices_count': devices_count,
             'alarms_count': alarms_count
         }
         data_json = json.dumps(data, ensure_ascii=False)
 
         return HttpResponse(data_json)
-
-
 
 
 # # 显示所有Arduino类型列表/创建一个新Arduino类型（权限：认证的用户）
@@ -738,6 +738,8 @@ def AlarmCreate(request):
         1）如果相同，则将取出的数据的结束时间赋值为-999
         2）如果不同，则将此次接收到的数据的产生时间赋值给取出的数据的结束时间并更新该条数据, 然后将此次将此次接收到的数据存进【Alarm】中，其中结束时间等于-999
     6. 如果不存在，则将这次收到的数据 [大棚编号、树莓派_mac、Ard_mac、产生时间、内容]存进【Alarm】，其中结束时间为-999
+    7. 每当收到一条报警记录且其content不为空，则将该报警记录所在大棚的状态置为警告
+    8. 若content的内容为空，查询此大棚下所有节点的最新的一条报警记录，若其content都为空，则将大棚的状态置为正常
     """
     # 提示信息
     global info
@@ -777,6 +779,27 @@ def AlarmCreate(request):
             else:
                 Alarm.objects.create(Area_number=Area_number, Rbp_mac=Rbp_mac, Ard_mac=Ard_mac,
                                      created=created, content=content, end_time=-999)
+
+            # 判断收到的报警记录的content是否为空
+            # 若content不为空，则将该报警记录所在大棚的状态置为警告
+            if content != '':
+                Area.objects.filter(number=Area_number).update(status='警告')
+
+            # 若content的内容为空，查询此大棚下所有节点的最新的一条报警记录，若其content都为空，则将大棚的状态置为正常
+            else:
+                ard_mac_list = Device.objects.values_list("Ard_mac").filter(Area_number=Area_number)
+                flag = ''
+                if ard_mac_list.exists():
+                    for ard_mac in ard_mac_list:
+                        Ard_mac = ard_mac[0]
+                        # 根据得到的Ard_mac，在【Alarm】中查找最新的一条记录的内容
+                        content_last = Alarm.objects.values_list("content").filter(Ard_mac=Ard_mac).order_by('-created').first()[0]
+                        if content_last != '':
+                            flag = '警告'
+                            break
+
+                    if flag == '':
+                        Area.objects.filter(number=Area_number).update(status='正常')
 
         except Exception:
             info = 'Alarm send failed!'
@@ -868,6 +891,8 @@ class SpecificAlarmListUser(APIView):
             for alarm in alarms_list:
                 Ard_mac = alarm.Ard_mac
                 content = alarm.content
+                if content == '':
+                    continue
                 created = alarm.created
                 end_time = alarm.end_time
                 temp = {
