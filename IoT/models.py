@@ -114,7 +114,7 @@ class Alarm(models.Model):
     Area_number = models.IntegerField()
     Rbp_mac = models.CharField(max_length=100)
     Ard_mac = models.CharField(max_length=100)
-    created = models.CharField(max_length=100)
+    created = models.BigIntegerField()
     content = models.CharField(max_length=100)
     end_time = models.BigIntegerField()
 
