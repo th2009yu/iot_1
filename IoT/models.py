@@ -109,13 +109,14 @@ class Alarm(models.Model):
     Arduino的MAC地址
     产生时间
     报警内容
-    修改时间
+    结束时间（当值为-999时，代表该条记录还未结束）
     """
     Area_number = models.IntegerField()
     Rbp_mac = models.CharField(max_length=100)
-    Ard_mac = models.CharField(max_length=100, unique=True)
+    Ard_mac = models.CharField(max_length=100)
     created = models.CharField(max_length=100)
     content = models.CharField(max_length=100)
+    end_time = models.BigIntegerField()
 
 
 # 设备的控制状态
@@ -128,7 +129,7 @@ class Control(models.Model):
     风扇: (0:关, 1:开)
     时间
     """
-    Ard_mac = models.CharField(max_length=100, unique=True)
+    Ard_mac = models.CharField(max_length=100)
     light_control = models.IntegerField()
     temp_control = models.IntegerField()
     waterPump_control = models.IntegerField()
@@ -136,11 +137,11 @@ class Control(models.Model):
     created = models.BigIntegerField()
 
 
-# 新闻
-class News(models.Model):
-    """
-    新闻题目
-    新闻内容
-    """
-    title = models.CharField(max_length=200)
-    news_content = models.TextField()
+# # 新闻
+# class News(models.Model):
+#     """
+#     新闻题目
+#     新闻内容
+#     """
+#     title = models.CharField(max_length=200)
+#     news_content = models.TextField()

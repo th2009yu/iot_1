@@ -38,6 +38,8 @@ urlpatterns = [
     path('areas-devices-modify/<int:pk>', views.AreaDeviceDetailModify.as_view()),
     # 获取某大棚详情信息：其中包括大棚信息、及其设备信息、以及每个设备的最新的一条传感器数据、设备控制的数据、报警记录数据（pk指代大棚编号）
     path('areas-devices-show/<int:pk>/', views.AreaDeviceDetailShow.as_view()),
+    # 获取当前用户的大棚数量、arduino数量、报警记录的数量(pk: 当前的用户id)
+    path('areas-devices-alarms-count/<int:pk>/', views.AreaDeviceAlarmCount.as_view()),
 
 
     # 设备模块#################################
@@ -85,6 +87,8 @@ urlpatterns = [
     path('alarmlist-ard/<str:pk>/', views.SpecificAlarmListArd.as_view()),
     # 显示某Arduino下的所有的最新的n条报警记录列表（E.g. /alarmlist-ard/ardmac111/1/ :显示ard_mac为ardmac111的arduino下的最新的1条报警记录列表）
     path('alarmlist-ard/<str:pk>/<int:number>/', views.LimitAlarmListArd.as_view()),
+    # 显示某用户下所有的报警记录,其中包括大棚名称+Ard_MAC+报警内容+报警记录产生时间以及结束时间(其中pk代表用户id)
+    path('alarmlist-user/<int:pk>/', views.SpecificAlarmListUser.as_view()),
 
 
     # 历史数据模块###############################

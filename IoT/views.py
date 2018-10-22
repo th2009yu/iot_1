@@ -480,6 +480,33 @@ class AreaDeviceDetailShow(APIView):
         return HttpResponse(response_json)
 
 
+# 获取当前用户的大棚数量、arduino数量、报警记录的数量
+class AreaDeviceAlarmCount(APIView):
+    def get(self, request, pk, format=None):
+        # 获取当前用户的大棚列表以及大棚数量
+        owner = User.objects.get(id=pk)
+        areas_list = Area.objects.filter(owner=owner)
+        areas_count = areas_list.count()
+
+        devices_count = 0
+        alarms_count = 0
+        # 根据获取的大棚列表，得到arduino数量和报警记录数量
+        for area in areas_list:
+            devices_count += Device.objects.filter(Area_number=area.number).count()
+            alarms_count += Alarm.objects.filter(Area_number=area.number).count()
+
+        data = {
+            'areas_count' : areas_count,
+            'devices_count': devices_count,
+            'alarms_count': alarms_count
+        }
+        data_json = json.dumps(data, ensure_ascii=False)
+
+        return HttpResponse(data_json)
+
+
+
+
 # # 显示所有Arduino类型列表/创建一个新Arduino类型（权限：认证的用户）
 # class KindOfArduinoList(generics.ListCreateAPIView):
 #     queryset = KindOfArduino.objects.all()
@@ -704,8 +731,13 @@ class AlarmList(generics.ListAPIView):
 def AlarmCreate(request):
     """
     1. 由树莓派发送给Server报警记录的数据，[树莓派_mac、Arduino_mac、产生时间、内容]
-    2. Server在【Device】中查找该Arduino_mac对应的大棚编号
-    3. 然后将 [大棚编号、树莓派_mac、Arduino_mac、产生时间、内容] 存储进【Alarm】
+    2. Server在【Device】中查找该Ard_mac对应的大棚编号
+    3. 得到 [大棚编号、树莓派_mac、Ard_mac、产生时间、内容]
+    4. 在【Alarm】中取出该Ard_mac下最新的一条数据，判断是否存在
+    5. 如果存在，则将此次收到的Area_number+content与取出的数据的Area_number+content进行比对。
+        1）如果相同，则将取出的数据的结束时间赋值为-999
+        2）如果不同，则将此次接收到的数据的产生时间赋值给取出的数据的结束时间并更新该条数据, 然后将此次将此次接收到的数据存进【Alarm】中，其中结束时间等于-999
+    6. 如果不存在，则将这次收到的数据 [大棚编号、树莓派_mac、Ard_mac、产生时间、内容]存进【Alarm】，其中结束时间为-999
     """
     # 提示信息
     global info
@@ -724,17 +756,33 @@ def AlarmCreate(request):
             # 在【Device】中查找该Arduino_mac对应的大棚编号
             Area_number = Device.objects.values("Area_number").filter(Ard_mac=Ard_mac).first()['Area_number']
 
-            # 将 [大棚编号、树莓派_mac、Arduino_mac、产生时间、内容] 存储进【Alarm】
-            Alarm.objects.create(Area_number=Area_number, Rbp_mac=Rbp_mac, Ard_mac=Ard_mac, created=created, content=content)
+            # 在【Alarm】中取出该Ard_mac下最新的一条数据，判断是否存在
+            alarm_last = Alarm.objects.filter(Ard_mac=Ard_mac).order_by('-created').first()
+            if alarm_last:
+                # 将此次收到的Area_number + content与取出的数据的Area_number + content进行比对。
+                if alarm_last.Area_number == Area_number and alarm_last.content == content:
+                    # 如果相同，则将取出的数据的结束时间赋值为 - 999
+                    alarm_last.end_time = -999
+                    alarm_last.Rbp_mac = Rbp_mac
+                    alarm_last.save()
+                else:
+                    # 如果不同，则将此次接收到的数据的产生时间赋值给取出的数据的结束时间并更新该条数据
+                    alarm_last.end_time = created
+                    alarm_last.save()
+                    # 然后将此次接收到的数据存进【Alarm】中，其中结束时间等于-999
+                    Alarm.objects.create(Area_number=Area_number, Rbp_mac=Rbp_mac, Ard_mac=Ard_mac,
+                                         created=created, content=content, end_time=-999)
+
+            # 如果不存在，则将这次收到的数据 [大棚编号、树莓派_mac、Ard_mac、产生时间、内容]存进【Alarm】，其中结束时间为-999
+            else:
+                Alarm.objects.create(Area_number=Area_number, Rbp_mac=Rbp_mac, Ard_mac=Ard_mac,
+                                     created=created, content=content, end_time=-999)
+
         except Exception:
             info = 'Alarm send failed!'
-        # serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # serversocket.sendto(info.encode('utf-8'), (Rbp_ip, 7777))
         return HttpResponse(info)
     else:
         info = 'Request error!'
-        # serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # serversocket.sendto(info.encode('utf-8'), (Rbp_ip, 7777))
         return HttpResponse(info)
 
 
@@ -802,6 +850,37 @@ class LimitAlarmListArd(APIView):
         Alarm_list = self.get_object(pk, number)
         serializer = AlarmSerializer(Alarm_list, many=True)
         return Response(serializer.data)
+
+
+# 显示某用户下所有的报警记录,其中包括大棚名称+Ard_MAC+报警内容+报警记录产生时间以及结束时间(其中pk代表用户id)
+class SpecificAlarmListUser(APIView):
+    def get(self, request, pk, format=None):
+        # 获得该用户下的大棚列表
+        owner = User.objects.get(id=pk)
+        areas_list = Area.objects.filter(owner=owner)
+        data = []
+        for area in areas_list:
+            Area_number = area.number
+            Area_name = area.name
+            # 获得该大棚编号下的报警记录列表
+            alarms_list = Alarm.objects.filter(Area_number=Area_number)
+            for alarm in alarms_list:
+                Ard_mac = alarm.Ard_mac
+                content = alarm.content
+                created = alarm.created
+                end_time = alarm.end_time
+                temp = {
+                    'Area_number': Area_number,
+                    'Area_name': Area_name,
+                    'Ard_mac': Ard_mac,
+                    'content': content,
+                    'created': created,
+                    'end_time': end_time
+                }
+                data.append(temp)
+
+        data_json = json.dumps(data, ensure_ascii=False)
+        return HttpResponse(data_json)
 
 
 # 查看某用户所有的大棚ID、名称以及各个大棚下Arduino的MAC地址(E.g. areas-devices-list/1/ : 显示用户id为1的用户所拥有的大棚列表及其设备列表)

@@ -93,7 +93,7 @@ class AgriSerializer(serializers.ModelSerializer):
 class AlarmSerializer(serializers.ModelSerializer):
     class Meta:
         model = Alarm
-        fields = ['id', 'Area_number', 'Ard_mac', 'created', 'content']
+        fields = ['id', 'Area_number', 'Ard_mac', 'created', 'content', 'end_time']
 
 
 # 设备控制状态的序列化
