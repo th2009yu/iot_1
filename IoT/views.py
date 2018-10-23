@@ -201,7 +201,7 @@ class AreaDetail(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-# 显示某用户的所有大棚（区域）列表（权限：认证的用户）（E.g. /arealist/1/    :显示id为1的用户的所有大棚（区域）列表）
+# 显示当前用户的所有大棚列表
 class SpecificAreaList(APIView):
     @staticmethod
     def get_object(pk):
@@ -210,8 +210,9 @@ class SpecificAreaList(APIView):
         except Area.DoesNotExist:
             return Http404
 
-    def get(self, request, pk, format=None):
-        Area_list = self.get_object(pk)
+    def get(self, request, format=None):
+        user_id = request.session['user_id']
+        Area_list = self.get_object(user_id)
         serializer = AreaSerializer(Area_list, many=True)
         return Response(serializer.data)
 
@@ -482,9 +483,10 @@ class AreaDeviceDetailShow(APIView):
 
 # 获取当前用户的大棚数量、arduino数量、报警记录的数量
 class AreaDeviceAlarmCount(APIView):
-    def get(self, request, pk, format=None):
+    def get(self, request, format=None):
         # 获取当前用户的大棚列表以及大棚数量
-        owner = User.objects.get(id=pk)
+        user_id = request.session['user_id']
+        owner = User.objects.get(id=user_id)
         areas_list = Area.objects.filter(owner=owner)
         areas_count = areas_list.count()
 
@@ -875,7 +877,7 @@ class LimitAlarmListArd(APIView):
         return Response(serializer.data)
 
 
-# 显示某用户下所有的报警记录,其中包括大棚名称+Ard_MAC+报警内容+报警记录产生时间以及结束时间(其中pk代表用户id)
+# 显示某用户下所有的报警记录,其中包括大棚名称+Ard_MAC+报警内容+报警记录产生时间以及结束时间
 class SpecificAlarmListUser(APIView):
     def get(self, request, format=None):
         # 获得该用户下的大棚列表
@@ -909,12 +911,13 @@ class SpecificAlarmListUser(APIView):
         return HttpResponse(data_json)
 
 
-# 查看某用户所有的大棚ID、名称以及各个大棚下Arduino的MAC地址(E.g. areas-devices-list/1/ : 显示用户id为1的用户所拥有的大棚列表及其设备列表)
+# 查看当前用户所有的大棚ID、名称以及各个大棚下Arduino的MAC地址
 class AreaDeviceList(APIView):
-    def get(self, request, pk, format=None):
+    def get(self, request, format=None):
         data = []
         # 在【Area】获取该用户下的所有大棚的编号及名称列表
-        area_list = Area.objects.values_list("number", "name").filter(owner=pk)
+        user_id = request.session['user_id']
+        area_list = Area.objects.values_list("number", "name").filter(owner=user_id)
 
         # 获取所需数据
         for area in area_list:
