@@ -334,26 +334,45 @@ class AreaDeviceDetailModify(APIView):
         light_min = req.get('light_min', '100')
         light_shake = req.get('light_shake', '80')
 
-        # 在【Area】中修改编号为number的大棚数据
+        # 在【Area】中修改编号为number的大棚
         Area.objects.filter(number=number).update(name=name, longitude=longitude, latitude=latitude,
                                                   crops=crops, status=status, detail=detail, owner=owner,
                                                   temp_max=temp_max, temp_min=temp_min, temp_shake=temp_shake,
                                                   humidity_min=humidity_min, humidity_shake=humidity_shake,
                                                   light_min=light_min, light_shake=light_shake)
 
-        # 在【Device】中删除编号为number的大棚下的所有节点
-        Device.objects.filter(Area_number=number).delete()
+        # 获取该大棚原有的设备的Ard_mac列表
+        ard_mac_list = Device.objects.values_list("Ard_mac").filter(Area_number=number)
+        old_ard_mac_list = []
+        for ard_mac in ard_mac_list:
+            old_ard_mac_list.append(ard_mac[0])
 
-        # 新建该大棚所属设备
+        # 获取大棚编号为number的大棚实例
+        Area_number = Area.objects.get(number=number)
+        # 分析该大棚下的设备信息
         distribution = req['distribution']
-        for device in distribution:
-            Ard_mac = device['mac']
-            kind = device.get('kind', '未知')
-            x = str(device['x'])
-            y = str(device['y'])
-            Area_number = Area.objects.get(number=number)
-            # 将数据存储进【Device】
-            Device.objects.create(Ard_mac=Ard_mac, kind=kind, x=x, y=y, Area_number=Area_number)
+
+        # 判断是否存在设备信息,若不存在，则直接将原有Ard_mac列表里对应的设备全部删除
+        if distribution:
+            for device in distribution:
+                Ard_mac = device['mac']
+                x = str(device['x'])
+                y = str(device['y'])
+                kind = device.get('kind', '未知')
+
+                # 判断该Ard_mac在原有Ard_mac列表中是否存在
+                # 若存在，则表示该设备未被删除, 则update, 并将该Ard_mac从这个原有Ard_mac列表中删除
+                if Ard_mac in old_ard_mac_list:
+                    Device.objects.filter(Ard_mac=Ard_mac).update(x=x, y=y, kind=kind)
+                    old_ard_mac_list.remove(Ard_mac)
+                # 若不存在，则表示该设备已被删除，则新建这个设备
+                else:
+                    Device.objects.create(Ard_mac=Ard_mac, x=x, y=y, kind=kind, Area_number=Area_number)
+
+        # 若原有Ard_mac列表中还有Ard_mac数据存在，则删除对应设备
+        if old_ard_mac_list:
+            for ard_mac in old_ard_mac_list:
+                Device.objects.filter(Ard_mac=ard_mac).delete()
 
         return HttpResponse('Success!')
 
@@ -497,7 +516,8 @@ class AreaDeviceAlarmCount(APIView):
             devices_count += Device.objects.filter(Area_number=area.number).count()
             content_blank_count = Alarm.objects.filter(Area_number=area.number, content='').count()
             alarms_total = Alarm.objects.filter(Area_number=area.number).count()
-            alarms_count = alarms_total - content_blank_count
+            temp = alarms_total - content_blank_count
+            alarms_count += temp
 
         data = {
             'areas_count': areas_count,
