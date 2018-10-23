@@ -365,7 +365,7 @@ class AreaDeviceDetailModify(APIView):
                 if Ard_mac in old_ard_mac_list:
                     Device.objects.filter(Ard_mac=Ard_mac).update(x=x, y=y, kind=kind)
                     old_ard_mac_list.remove(Ard_mac)
-                # 若不存在，则表示该设备已被删除，则新建这个设备
+                # 若不存在，则新建这个设备
                 else:
                     Device.objects.create(Ard_mac=Ard_mac, x=x, y=y, kind=kind, Area_number=Area_number)
 
