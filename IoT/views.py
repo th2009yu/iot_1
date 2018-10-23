@@ -404,7 +404,7 @@ class AreaDeviceDetailShow(APIView):
 
             # 根据取出的设备MAC地址，在【Agri】中查找该设备下最新的一条传感器数据
             sensor_tuple = Agri.objects.values_list("soil_Humidity", "soil_Temp", "soil_Salinity",
-                                                    "soil_EC", "air_Humidity","air_Temp",
+                                                    "soil_EC", "air_Humidity", "air_Temp",
                                                     "CO2_Concentration", "light_Intensity", "soil_PH",
                                                     "air_Pressure", "wind_Speed",
                                                     "O2_Concentration").filter(Ard_mac=mac).first()
