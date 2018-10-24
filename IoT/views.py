@@ -436,7 +436,8 @@ class AreaDeviceDetailShow(APIView):
                 air_Pressure = '暂未有数据'
                 wind_Speed = '暂未有数据'
                 O2_Concentration = '暂未有数据'
-                created = '暂未有数据'
+                # 约定0代表created暂未有数据
+                created = 0
 
             # 根据取出的设备MAC地址，在【Control】中查找该设备下最新的一条设备控制数据
             control_tuple = Control.objects.values_list("light_control", "temp_control", "waterPump_control",
