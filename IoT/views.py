@@ -407,7 +407,7 @@ class AreaDeviceDetailShow(APIView):
                                                     "soil_EC", "air_Humidity", "air_Temp",
                                                     "CO2_Concentration", "light_Intensity", "soil_PH",
                                                     "air_Pressure", "wind_Speed",
-                                                    "O2_Concentration").filter(Ard_mac=mac).first()
+                                                    "O2_Concentration", "created").filter(Ard_mac=mac).first()
             # 判断记录是否存在
             if sensor_tuple:
                 soil_Humidity = sensor_tuple[0]
@@ -422,6 +422,7 @@ class AreaDeviceDetailShow(APIView):
                 air_Pressure = sensor_tuple[9]
                 wind_Speed = sensor_tuple[10]
                 O2_Concentration = sensor_tuple[11]
+                created = sensor_tuple[12]
             else:
                 soil_Humidity = '暂未有数据'
                 soil_Temp = '暂未有数据'
@@ -435,6 +436,7 @@ class AreaDeviceDetailShow(APIView):
                 air_Pressure = '暂未有数据'
                 wind_Speed = '暂未有数据'
                 O2_Concentration = '暂未有数据'
+                created = '暂未有数据'
 
             # 根据取出的设备MAC地址，在【Control】中查找该设备下最新的一条设备控制数据
             control_tuple = Control.objects.values_list("light_control", "temp_control", "waterPump_control",
@@ -479,6 +481,7 @@ class AreaDeviceDetailShow(APIView):
                 'air_Pressure': air_Pressure,
                 'wind_Speed': wind_Speed,
                 'O2_Concentration': O2_Concentration,
+                'created': created,
                 'light_control': light_control,
                 'temp_control': temp_control,
                 'waterPump_control': waterPump_control,
