@@ -79,7 +79,7 @@ urlpatterns = [
     path('alarms/new/', views.AlarmCreate),
     # 获得GET、更新PUT、删除DELETE某个报警记录实例，(E.g. /alarms/1/ :获取、更新或删除报警记录id为1的实例)
     path('alarms/<int:pk>/', views.AlarmDetail.as_view()),
-    # 显示某大棚下的所有报警记录列表（E.g. /alarmlist/1/    :显示大棚编号为1的大棚下的所有报警记录列表）
+    # 显示某大棚下的所有报警记录列表（pk：大棚id）
     path('alarmlist/<int:pk>/', views.SpecificAlarmList.as_view()),
     # 显示某大棚下的所有的最新的n条报警记录列表(E.g. /alarmlist/1/1/:显示大棚编号为1的大棚下的最新的1条报警记录列表）
     path('alarmlist/<int:pk>/<int:number>/', views.LimitAlarmList.as_view()),

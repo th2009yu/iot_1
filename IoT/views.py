@@ -842,7 +842,7 @@ class SpecificAlarmList(APIView):
     @staticmethod
     def get_object(pk):
         try:
-            return Alarm.objects.filter(Area_number=pk)
+            return Alarm.objects.filter(Area_number=pk).exclude(content='')
         except Alarm.DoesNotExist:
             return Http404
 
@@ -857,7 +857,7 @@ class LimitAlarmList(APIView):
     @staticmethod
     def get_object(pk, number):
         try:
-            return Alarm.objects.filter(Area_number=pk).order_by('-created')[:number]
+            return Alarm.objects.filter(Area_number=pk).exclude(content='').order_by('-created')[:number]
         except Alarm.DoesNotExist:
             return Http404
 
@@ -872,7 +872,7 @@ class SpecificAlarmListArd(APIView):
     @staticmethod
     def get_object(pk):
         try:
-            return Alarm.objects.filter(Ard_mac=pk)
+            return Alarm.objects.filter(Ard_mac=pk).exclude(content='')
         except Alarm.DoesNotExist:
             return Http404
 
@@ -887,7 +887,7 @@ class LimitAlarmListArd(APIView):
     @staticmethod
     def get_object(pk, number):
         try:
-            return Alarm.objects.filter(Ard_mac=pk).order_by('-created')[:number]
+            return Alarm.objects.filter(Ard_mac=pk).exclude(content='').order_by('-created')[:number]
         except Alarm.DoesNotExist:
             return Http404
 
