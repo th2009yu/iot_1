@@ -92,9 +92,14 @@ class AgriSerializer(serializers.ModelSerializer):
 
 # 报警记录的序列化
 class AlarmSerializer(serializers.ModelSerializer):
+    Area_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Alarm
-        fields = ['id', 'Area_number', 'Ard_mac', 'created', 'content', 'end_time']
+        fields = ['id', 'Area_number', 'Area_name', 'Ard_mac', 'created', 'content', 'end_time']
+
+    def get_Area_name(self, obj):
+        return Area.objects.values_list("name").filter(number=obj.Area_number).first()[0]
 
 
 # 设备控制状态的序列化
