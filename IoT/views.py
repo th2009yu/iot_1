@@ -320,7 +320,8 @@ class AreaDeviceCreate(APIView):
                 Device.objects.create(Ard_mac=Ard_mac, kind=kind, x=x, y=y, Area_number=Area_number)
             except Exception:
                 Area.objects.filter(number=number).delete()
-                raise Http404
+                status_code = 500
+                return Response(status=status_code)
 
         response = HttpResponse('Success!')
         response['Access-Control-Expose-Headers'] = 'sessionid'
