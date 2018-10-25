@@ -301,12 +301,6 @@ class AreaDeviceCreate(APIView):
         light_min = req.get('light_min', '100')
         light_shake = req.get('light_shake', '80')
 
-        # 将数据存储进【Area】
-        Area.objects.create(number=number, name=name, longitude=longitude, latitude=latitude, crops=crops,
-                            status=status, detail=detail, owner=owner,
-                            temp_max=temp_max, temp_min=temp_min, temp_shake=temp_shake, humidity_min=humidity_min,
-                            humidity_shake=humidity_shake, light_min=light_min, light_shake=light_shake)
-
         # 新建该大棚所属设备
         distribution = req['distribution']
         for device in distribution:
@@ -316,7 +310,16 @@ class AreaDeviceCreate(APIView):
             y = str(device['y'])
             Area_number = Area.objects.get(number=number)
             # 将数据存储进【Device】
-            Device.objects.create(Ard_mac=Ard_mac, kind=kind, x=x, y=y, Area_number=Area_number)
+            try:
+                Device.objects.create(Ard_mac=Ard_mac, kind=kind, x=x, y=y, Area_number=Area_number)
+            except Exception:
+                return Http404
+
+        # 将数据存储进【Area】
+        Area.objects.create(number=number, name=name, longitude=longitude, latitude=latitude, crops=crops,
+                            status=status, detail=detail, owner=owner,
+                            temp_max=temp_max, temp_min=temp_min, temp_shake=temp_shake, humidity_min=humidity_min,
+                            humidity_shake=humidity_shake, light_min=light_min, light_shake=light_shake)
 
         response = HttpResponse('Success!')
         response['Access-Control-Expose-Headers'] = 'sessionid'
