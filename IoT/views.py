@@ -11,6 +11,8 @@ from django.http import HttpResponse
 import socket, time
 from django.contrib.auth import logout, login
 import json
+from django.http import QueryDict
+from rest_framework.request import Request
 
 
 # # 客户端命令接口
@@ -31,33 +33,85 @@ import json
 
 
 # 手动控制 (E.g. /order?area_number=1&ard_mac=11111&command=hhh)
-def order(request):
+# def order(request):
+#     """
+#     1. Client将 [大棚、节点、操作内容] 发送给Server
+#     2. Server在【数据】中查找该节点最新对应的树莓派IP
+#     3. 然后用UDP协议发送给树莓派 [大棚、节点、操作内容]
+#     """
+#     if request.GET.get('area_number') and request.GET.get('ard_mac') and request.GET.get('command'):
+#         Area_number = request.GET['area_number']
+#         Ard_mac = request.GET['ard_mac']
+#         Command = request.GET['command']
+#         data = {
+#             'Area_number': Area_number,
+#             'Ard_mac': Ard_mac,
+#             'Command': Command
+#         }
+#         json_data = json.dumps(data, ensure_ascii=False)
+#         try:
+#             # 在【Agri】中查找该节点最新对应的树莓派IP
+#             Rbp_ip = Agri.objects.values("Rbp_ip").filter(Ard_mac=Ard_mac).first()['Rbp_ip']
+#             # 用UDP协议发送给树莓派 [大棚、节点、操作内容]
+#             serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#             serversocket.sendto(json_data.encode('utf-8'), (Rbp_ip, 7777))
+#             return HttpResponse('Order send successfully!')
+#         except TypeError:
+#             return HttpResponse('Error! Database record does not exist!')
+#     else:
+#         return HttpResponse('Error! Missing parameters! [area_number, ard_mac, command] this three parameters is needed!')
+
+# 参数统一处理：
+# 当url有?param=1&param=2这样的参数时忽略body中的参数,即query_params有内容, 则忽略body内容并将QueryDict转为dict返回
+# 如果query_params为空，则判断request.data中是否有内容, 以及将request.data转为dict并返回
+def get_parameter_dic(request, *args, **kwargs):
+    if not isinstance(request, Request):
+        return {}
+
+    query_params = request.query_params
+    if isinstance(query_params, QueryDict):
+        query_params = query_params.dict()
+    result_data = request.data
+    if isinstance(result_data, QueryDict):
+        result_data = result_data.dict()
+
+    if query_params != {}:
+        return query_params
+    else:
+        return result_data
+
+
+# 手动控制 (E.g. /order?area_number=1&ard_mac=11111&command=hhh)
+class order(APIView):
     """
     1. Client将 [大棚、节点、操作内容] 发送给Server
     2. Server在【数据】中查找该节点最新对应的树莓派IP
     3. 然后用UDP协议发送给树莓派 [大棚、节点、操作内容]
     """
-    if request.GET.get('area_number') and request.GET.get('ard_mac') and request.GET.get('command'):
-        Area_number = request.GET['area_number']
-        Ard_mac = request.GET['ard_mac']
-        Command = request.GET['command']
-        data = {
-            'Area_number': Area_number,
-            'Ard_mac': Ard_mac,
-            'Command': Command
-        }
-        json_data = json.dumps(data, ensure_ascii=False)
-        try:
-            # 在【Agri】中查找该节点最新对应的树莓派IP
-            Rbp_ip = Agri.objects.values("Rbp_ip").filter(Ard_mac=Ard_mac).first()['Rbp_ip']
-            # 用UDP协议发送给树莓派 [大棚、节点、操作内容]
-            serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            serversocket.sendto(json_data.encode('utf-8'), (Rbp_ip, 7777))
-            return HttpResponse('Order send successfully!')
-        except TypeError:
-            return HttpResponse('Error! Database record does not exist!')
-    else:
-        return HttpResponse('Error! Missing parameters! [area_number, ard_mac, command] this three parameters is needed!')
+    def get(self, request, *args, **kwargs):
+        # 获取参数
+        params = get_parameter_dic(request)
+        if params.get('area_number') and params.get('ard_mac') and params.get('command'):
+            Area_number = params['area_number']
+            Ard_mac = params['ard_mac']
+            Command = params['command']
+            data = {
+                'Area_number': Area_number,
+                'Ard_mac': Ard_mac,
+                'Command': Command
+            }
+            json_data = json.dumps(data, ensure_ascii=False)
+            try:
+                # 在【Agri】中查找该节点最新对应的树莓派IP
+                Rbp_ip = Agri.objects.values("Rbp_ip").filter(Ard_mac=Ard_mac).first()['Rbp_ip']
+                # 用UDP协议发送给树莓派 [大棚、节点、操作内容]
+                serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                serversocket.sendto(json_data.encode('utf-8'), (Rbp_ip, 7777))
+                return Response('Order send successfully!')
+            except TypeError:
+                return Response('Error! Database record does not exist!')
+        else:
+            return Response('Error! Missing parameters! [area_number, ard_mac, command] this three parameters is needed!')
 
 
 # 用户注册（权限：所有人）
@@ -846,7 +900,7 @@ class SpecificAlarmList(APIView):
     @staticmethod
     def get_object(pk):
         try:
-            return Alarm.objects.filter(Area_number=pk).exclude(content='')
+            return Alarm.objects.filter(Area_number=pk).exclude(content='').order_by('-created')
         except Alarm.DoesNotExist:
             return Http404
 
@@ -876,7 +930,7 @@ class SpecificAlarmListArd(APIView):
     @staticmethod
     def get_object(pk):
         try:
-            return Alarm.objects.filter(Ard_mac=pk).exclude(content='')
+            return Alarm.objects.filter(Ard_mac=pk).exclude(content='').order_by('-created')
         except Alarm.DoesNotExist:
             return Http404
 
@@ -913,7 +967,7 @@ class SpecificAlarmListUser(APIView):
             Area_number = area.number
             Area_name = area.name
             # 获得该大棚编号下的报警记录列表
-            alarms_list = Alarm.objects.filter(Area_number=Area_number)
+            alarms_list = Alarm.objects.filter(Area_number=Area_number).order_by('-created')
             for alarm in alarms_list:
                 Ard_mac = alarm.Ard_mac
                 content = alarm.content
@@ -933,6 +987,40 @@ class SpecificAlarmListUser(APIView):
 
         data_json = json.dumps(data, ensure_ascii=False)
         return HttpResponse(data_json)
+
+
+# 根据条件刷选来获取报警记录列表(E.g. /alarmlist-condition?area_number=1&ard_mac=00-00-01&time=123232)
+class AlarmListCondition(APIView):
+    def get(self, request, *args, **kwargs):
+        # 获取参数
+        params = get_parameter_dic(request)
+
+        area_number = params.get('area_number', None)
+        ard_mac = params.get('ard_mac', None)
+        timestamp = params.get('time', None)
+
+        # 如果参数中没有Arduino的MAC地址
+        if area_number and ard_mac is None:
+            if timestamp is None:
+                Alarm_list = Alarm.objects.filter(Area_number=area_number).exclude(content='').order_by('-created')
+            else:
+                timestamp = int(timestamp)
+                start = timestamp
+                end = timestamp + 86216
+                Alarm_list = Alarm.objects.filter(Area_number=area_number).filter(created__range=(start, end)).exclude(content='').order_by('-created')
+
+        # 如果参数中有Arduino的MAC地址
+        else:
+            if timestamp is None:
+                Alarm_list = Alarm.objects.filter(Ard_mac=ard_mac).exclude(content='').order_by('-created')
+            else:
+                timestamp = int(timestamp)
+                start = timestamp
+                end = timestamp + 86216
+                Alarm_list = Alarm.objects.filter(Ard_mac=ard_mac).filter(created__range=(start, end)).exclude(content='').order_by('-created')
+
+        serializer = AlarmSerializer(Alarm_list, many=True)
+        return Response(serializer.data)
 
 
 # 查看当前用户所有的大棚ID、名称以及各个大棚下Arduino的MAC地址

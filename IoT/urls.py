@@ -5,7 +5,7 @@ from rest_framework.urlpatterns import format_suffix_patterns
 
 urlpatterns = [
     # 手动控制 (E.g. /order?area_number=1&ard_mac=11111&command=hhh)
-    path('order', views.order),
+    path('order', views.order.as_view()),
 
 
     # 用户模块#################################
@@ -89,6 +89,8 @@ urlpatterns = [
     path('alarmlist-ard/<str:pk>/<int:number>/', views.LimitAlarmListArd.as_view()),
     # 显示当前用户下所有的报警记录,其中包括大棚名称+Ard_MAC+报警内容+报警记录产生时间以及结束时间
     path('alarmlist-user/', views.SpecificAlarmListUser.as_view()),
+    # 根据条件刷选来获取报警记录列表(E.g. /alarmlist-condition?area_number=1&ard_mac=00-00-01&time=232322)
+    path('alarmlist-condition', views.AlarmListCondition.as_view()),
 
 
     # 历史数据模块###############################
