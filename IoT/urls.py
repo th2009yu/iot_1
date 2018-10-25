@@ -40,6 +40,8 @@ urlpatterns = [
     path('areas-devices-show/<int:pk>/', views.AreaDeviceDetailShow.as_view()),
     # 获取当前用户的大棚数量、arduino数量、报警记录的数量
     path('areas-devices-alarms-count/', views.AreaDeviceAlarmCount.as_view()),
+    # 获取某Arduino所在的大棚信息(pk为Arduino的MAC地址)
+    path('areas-get/<str:pk>', views.AreaDetailGet.as_view()),
 
 
     # 设备模块#################################

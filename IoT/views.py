@@ -587,6 +587,16 @@ class AreaDeviceAlarmCount(APIView):
         return HttpResponse(data_json)
 
 
+# 获取某Arduino所在的大棚信息(pk为Arduino的MAC地址)
+class AreaDetailGet(APIView):
+    def get(self, request, pk, foramt=None):
+        # 获取该Arduino所在的大棚编号
+        Area_number = Device.objects.values_list("Area_number").filter(Ard_mac=pk).first()[0]
+        area = Area.objects.get(number=Area_number)
+        serializer = AreaSerializer(area)
+        return Response(serializer.data)
+
+
 # # 显示所有Arduino类型列表/创建一个新Arduino类型（权限：认证的用户）
 # class KindOfArduinoList(generics.ListCreateAPIView):
 #     queryset = KindOfArduino.objects.all()
