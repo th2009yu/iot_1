@@ -1,3 +1,1 @@
-# iot_1
-Master's first year of the second semester of the agricultural Internet of Things project. 
-Django + Django-rest-framework + Nginx + Mysql
+使用Django + Django-rest-framework + Nginx + Mysql搭建研究室实验室的物联网项目的后端。
